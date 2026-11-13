@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Download, FileUp, LockKeyhole, LogOut } from "lucide-react";
-import { Badge, Button, Card, Field, Input } from "@/components/ui";
+import { Badge, Button, Card, Field, Input, PasswordInput } from "@/components/ui";
 import { useApp } from "@/store";
 import { useCooperation } from "@/CooperationContext";
 import { formatIDR, practitioners } from "@/data";
@@ -62,7 +62,7 @@ function OwnerLogin({ onOk }: { onOk: () => void }) {
     <p className="mt-1 text-sm text-muted">Halaman khusus pemilik VAKSARA.</p>
     <form onSubmit={submit} className="mt-5 space-y-3">
       <Field label="Email"><Input aria-label="Email pemilik" type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} /></Field>
-      <Field label="Sandi"><Input aria-label="Sandi pemilik" type="password" autoComplete="current-password" value={pw} onChange={e => setPw(e.target.value)} /></Field>
+      <Field label="Sandi"><PasswordInput aria-label="Sandi pemilik" autoComplete="current-password" value={pw} onChange={e => setPw(e.target.value)} /></Field>
       {error && <p role="alert" className="text-sm font-semibold text-[#933A2F]">{error}</p>}
       <Button type="submit" full disabled={busy}>{busy ? "Memeriksa…" : "Masuk"}</Button>
     </form>
@@ -83,7 +83,7 @@ function LiveOwnerLogin() {
     <p className="mt-1 text-sm text-muted">Gunakan akun VAKSARA yang ditetapkan sebagai admin.</p>
     <form onSubmit={submit} className="mt-5 space-y-3">
       <Field label="Email"><Input aria-label="Email pemilik" type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} /></Field>
-      <Field label="Sandi"><Input aria-label="Sandi pemilik" type="password" autoComplete="current-password" value={pw} onChange={e => setPw(e.target.value)} /></Field>
+      <Field label="Sandi"><PasswordInput aria-label="Sandi pemilik" autoComplete="current-password" value={pw} onChange={e => setPw(e.target.value)} /></Field>
       {error && <p role="alert" className="text-sm font-semibold text-[#933A2F]">{error}</p>}
       <Button type="submit" full disabled={busy}>{busy ? "Memeriksa…" : "Masuk"}</Button>
     </form>

@@ -3,7 +3,6 @@ import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { useApp } from "@/store";
 import { useCooperation } from "@/CooperationContext";
 import { useEventPlan } from "@/EventPlanContext";
-import { rundown as seedRundown } from "@/data";
 import { phaseLabels, type Actor } from "@/utils/cooperation";
 import { caseRoute, visibleCases, actionView } from "@/utils/workspace";
 import { cn } from "@/utils/cn";
@@ -32,7 +31,7 @@ export const todayIso = () => new Date().toISOString().slice(0, 10);
 
 /** Semua agenda dari satu sumber: rencana acara, rundown, checklist dan jadwal kerja sama. */
 export function useCalendarEvents(scope: "couple" | "vendor" = "couple"): CalendarEvent[] {
-  const { checklist } = useApp();
+  const { checklist, rundownItems } = useApp();
   const { flow } = useCooperation();
   const { plan } = useEventPlan();
   return useMemo(() => {
@@ -45,11 +44,11 @@ export function useCalendarEvents(scope: "couple" | "vendor" = "couple"): Calend
     }
     if (scope === "couple") {
       if (plan.date) out.push({ date: plan.date, title: "Hari pernikahan", detail: `${plan.name}${plan.location ? " · " + plan.location : ""}`, kind: "hari", route: "planner/rundown" });
-      for (const r of seedRundown) out.push({ date: r.date, time: r.time, title: r.title, detail: `${r.time} WITA · ${r.owner}`, kind: "acara", route: "planner/rundown" });
+      for (const r of rundownItems) out.push({ date: r.date, time: r.time, title: r.title, detail: `${r.time} WITA · ${r.owner}`, kind: "acara", route: "planner/rundown" });
       for (const t of checklist) { const iso = toIso(t.due); if (iso) out.push({ date: iso, title: t.title, detail: `${t.category}${t.done ? " · selesai" : ""}`, kind: "tugas", done: t.done, route: "planner/jadwal" }); }
     }
     return out.sort((a, b) => a.date.localeCompare(b.date) || order.indexOf(a.kind) - order.indexOf(b.kind) || (a.time ?? "").localeCompare(b.time ?? ""));
-  }, [checklist, flow, plan, scope]);
+  }, [checklist, flow, plan, scope, rundownItems]);
 }
 
 export function UpcomingList({ events, limit = 5, from }: { events: CalendarEvent[]; limit?: number; from?: string }) {

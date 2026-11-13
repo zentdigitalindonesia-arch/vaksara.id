@@ -1,5 +1,5 @@
 import { Logo } from "@/components/brand";
-import { Alert, Button, Field, Input, Modal } from "@/components/ui";
+import { Alert, Button, Field, Input, Modal, PasswordInput } from "@/components/ui";
 import { demoAccounts, demoLogin } from "@/utils/demo-login";
 import { liveEnabled } from "@/utils/supabase";
 import { startPlanTarget, useLive } from "@/LiveContext";
@@ -30,9 +30,9 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
         <div className="mx-auto flex max-w-[1240px] items-center justify-between gap-3 px-4 py-2 sm:px-6">
           <p className="flex min-w-0 items-center gap-2 text-[14px] leading-tight sm:text-[14px]">
             <span className="inline-flex items-center gap-1 rounded-full border border-sand/40 bg-sand/10 px-1.5 py-0.5 text-[12px] font-bold uppercase tracking-wider text-sand">
-              <Sparkles className="h-2.5 w-2.5" /> Prototipe 2.0
+              <Sparkles className="h-2.5 w-2.5" /> {liveEnabled ? "VAKSARA 2.0" : "Prototipe 2.0"}
             </span>
-            <span className="min-w-0 flex-1 truncate text-cream/75">Identitas, pembayaran, dan tanda tangan elektronik ditampilkan sebagai simulasi.</span>
+            <span className="min-w-0 flex-1 truncate text-cream/75">{liveEnabled ? "Akun dan data tersimpan di server. Dana Amanah dan tanda tangan elektronik masih tahap uji." : "Identitas, pembayaran, dan tanda tangan elektronik ditampilkan sebagai simulasi."}</span>
           </p>
           <button onClick={() => navigate("pusat-bantuan")} className="hidden shrink-0 text-[14px] font-semibold text-sand hover:text-cream sm:block">
             Pusat Bantuan
@@ -64,9 +64,9 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
             <Button variant="ghost" size="sm" onClick={() => (live ? navigate(home) : setAuthMode("masuk"))}>
               {live ? "Ruang saya" : "Masuk"}
             </Button>
-            <Button variant="secondary" size="sm" className="whitespace-nowrap" onClick={() => navigate("demo")}>
+            {!live && <Button variant="secondary" size="sm" className="whitespace-nowrap" onClick={() => navigate("demo")}>
               Coba demo
-            </Button>
+            </Button>}
             <Button size="sm" className="whitespace-nowrap" onClick={startPlan} trailing={<ArrowRight className="h-3.5 w-3.5" />}>
               Mulai rencana
             </Button>
@@ -111,7 +111,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
             <div className="mt-2 grid grid-cols-2 gap-2 border-t border-line pt-3">
               <Button variant="secondary" onClick={() => { if (live) navigate(home); else setAuthMode("masuk"); setMobileOpen(false); }}>{live ? "Ruang saya" : "Masuk"}</Button>
               <Button onClick={() => { setAuthMode("daftar"); setMobileOpen(false); }}>Daftar</Button>
-              <Button className="col-span-2" variant="gold" onClick={() => { navigate("demo"); setMobileOpen(false); }}>Coba demo terpandu</Button>
+              {!live && <Button className="col-span-2" variant="gold" onClick={() => { navigate("demo"); setMobileOpen(false); }}>Coba demo terpandu</Button>}
             </div>
           </div>
         )}
@@ -221,7 +221,7 @@ function DemoLogin({ onDone }: { onDone: (home: string) => void }) {
   return <>
     <form onSubmit={login} className="space-y-3" aria-label="Masuk akun demo">
       <Field label="Nama pengguna demo"><Input aria-label="Nama pengguna" autoComplete="username" value={id} onChange={e => setId(e.target.value)} placeholder="keluarga" /></Field>
-      <Field label="Kata sandi demo"><Input aria-label="Kata sandi" type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" /></Field>
+      <Field label="Kata sandi demo"><PasswordInput aria-label="Kata sandi" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" /></Field>
       {error && <p role="alert" className="text-sm font-semibold text-[#933A2F]">{error}</p>}
       <Button type="submit" full variant={liveEnabled ? "secondary" : "primary"}>{liveEnabled ? "Masuk akun demo" : "Masuk"}</Button>
     </form>

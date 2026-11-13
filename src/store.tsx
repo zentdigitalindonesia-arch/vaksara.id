@@ -15,6 +15,7 @@ import {
   payments as initialPayments,
   type Agreement,
   type Dispute,
+  rundown as seedRundown,
 } from "./data";
 
 export type Role = "public" | "couple" | "vendor" | "admin";
@@ -69,7 +70,10 @@ type Store = {
   recordExpense: (e: { category: string; label: string; amount: number; date: string }) => void;
   notificationsRead: boolean;
   markNotificationsRead: () => void;
+  rundownItems: RundownItem[];
+  setRundownItems: (items: RundownItem[] | ((prev: RundownItem[]) => RundownItem[])) => void;
 };
+export type RundownItem = (typeof seedRundown)[number];
 
 const Ctx = createContext<Store | null>(null);
 
@@ -143,6 +147,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     { name: "Nanda Ayu", group: "Kampus", party: 1, rsvp: "Menunggu", table: "—", invitation: "Belum dikirim" },
     { name: "Keluarga Ibu Suharti", group: "Tetangga", party: 4, rsvp: "Hadir", table: "C1", invitation: "Terkirim" },
   ], isArrayOf({ name: "string", group: "string", party: "number", rsvp: "string" }));
+  // Rundown milik akun: kosong untuk akun nyata baru, contoh untuk mode demo.
+  const [rundownItems, setRundownItems] = usePersisted<RundownItem[]>("vaksara-planner-rundown-v1", live ? [] : seedRundown, isArrayOf({ id: "string", title: "string", date: "string" }));
   const [expenses, setExpenses] = usePersisted<{ id: string; category: string; label: string; amount: number; date: string }[]>("vaksara-planner-expenses-v1", live ? [] : [{ id: "demo-exp-1", category: "Busana", label: "Contoh pencatatan konsultasi busana (demo)", amount: 500000, date: "2026-10-25" }, { id: "demo-exp-2", category: "Dokumentasi", label: "Contoh biaya persiapan dokumentasi (demo)", amount: 750000, date: "2026-10-25" }], isArrayOf({ id: "string", category: "string", amount: "number" }));
   const [notificationsRead, setNotificationsRead] = useState(false);
   const toastId = useRef(0);
@@ -307,6 +313,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     recordExpense,
     notificationsRead,
     markNotificationsRead: () => setNotificationsRead(true),
+    rundownItems,
+    setRundownItems,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

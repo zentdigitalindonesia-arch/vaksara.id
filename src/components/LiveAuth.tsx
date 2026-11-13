@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Field, Input } from "@/components/ui";
+import { Button, Field, Input, PasswordInput } from "@/components/ui";
 import { friendly, resendCode, sendRecovery, signIn, signUp, updatePassword, verifyCode, type AuthSession } from "@/utils/supabase";
 import { enterLive } from "@/LiveContext";
 
@@ -67,7 +67,7 @@ export function LiveAuthForm({ initial = "masuk" }: { initial?: "masuk" | "dafta
     <p className="text-center text-[13px] text-muted">{link("Kembali ke Masuk", "masuk")}</p>
   </form>;
   if (step === "sandi-baru") return <form onSubmit={newPassword} className="space-y-3" aria-label="Kata sandi baru">
-    <Field label="Kata sandi baru" hint="Minimal 8 karakter, berisi huruf dan angka."><Input aria-label="Kata sandi baru" type="password" autoComplete="new-password" value={f.password} onChange={e => set({ password: e.target.value })} /></Field>
+    <Field label="Kata sandi baru" hint="Minimal 8 karakter, berisi huruf dan angka."><PasswordInput aria-label="Kata sandi baru" autoComplete="new-password" value={f.password} onChange={e => set({ password: e.target.value })} /></Field>
     {msg}<Button type="submit" full disabled={busy}>{busy ? "Menyimpan…" : "Simpan dan masuk"}</Button>
   </form>;
   if (step === "daftar") return <form onSubmit={register} className="space-y-3" aria-label="Daftar akun VAKSARA">
@@ -77,7 +77,7 @@ export function LiveAuthForm({ initial = "masuk" }: { initial?: "masuk" | "dafta
       <Field label="Email"><Input aria-label="Email daftar" type="email" autoComplete="email" value={f.email} onChange={e => set({ email: e.target.value })} /></Field>
       <Field label="Nomor WhatsApp"><Input aria-label="Nomor WhatsApp" type="tel" inputMode="tel" autoComplete="tel" value={f.phone} onChange={e => set({ phone: e.target.value })} placeholder="0812 3456 7890" /></Field>
       <Field label="Kota / kabupaten"><Input aria-label="Kota" maxLength={80} value={f.city} onChange={e => set({ city: e.target.value })} /></Field>
-      <Field label="Kata sandi" hint="Min. 8 karakter, huruf dan angka."><Input aria-label="Kata sandi daftar" type="password" autoComplete="new-password" value={f.password} onChange={e => set({ password: e.target.value })} /></Field>
+      <Field label="Kata sandi" hint="Min. 8 karakter, huruf dan angka."><PasswordInput aria-label="Kata sandi daftar" autoComplete="new-password" value={f.password} onChange={e => set({ password: e.target.value })} /></Field>
     </div>
     <label className="flex items-start gap-2 text-[13px] text-ink-soft"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#123a33]" checked={f.agree} onChange={e => set({ agree: e.target.checked })} /><span>Saya setuju data akun (nama, email, WhatsApp, kota) disimpan VAKSARA untuk menjalankan layanan. Nomor WhatsApp tidak ditampilkan ke publik tanpa izin.</span></label>
     {msg}<Button type="submit" full disabled={busy}>{busy ? "Mendaftarkan…" : "Daftar dan kirim kode verifikasi"}</Button>
@@ -85,7 +85,7 @@ export function LiveAuthForm({ initial = "masuk" }: { initial?: "masuk" | "dafta
   </form>;
   return <form onSubmit={login} className="space-y-3" aria-label="Masuk akun VAKSARA">
     <Field label="Email"><Input aria-label="Email masuk" type="email" autoComplete="email" value={f.email} onChange={e => set({ email: e.target.value })} placeholder="nama@email.com" /></Field>
-    <Field label="Kata sandi"><Input aria-label="Kata sandi akun" type="password" autoComplete="current-password" value={f.password} onChange={e => set({ password: e.target.value })} /></Field>
+    <Field label="Kata sandi"><PasswordInput aria-label="Kata sandi akun" autoComplete="current-password" value={f.password} onChange={e => set({ password: e.target.value })} /></Field>
     {msg}<Button type="submit" full disabled={busy}>{busy ? "Masuk…" : "Masuk"}</Button>
     <p className="text-center text-[13px] text-muted">{link("Lupa kata sandi?", "lupa")} · Belum punya akun? {link("Daftar", "daftar")}</p>
   </form>;

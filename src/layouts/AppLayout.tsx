@@ -148,7 +148,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const meta = {
     ...baseMeta, sub: role === "couple" ? plan.name || "Acara Anda" : role === "vendor" && live ? listing?.name ?? "Lengkapi profil layanan" : baseMeta.sub,
     name: live ? profile?.full_name || email || "Akun VAKSARA" : role === "vendor" ? flow.accounts.vendor?.name ?? baseMeta.name : role === "couple" ? flow.accounts.couple?.name ?? baseMeta.name : baseMeta.name,
-    nav: baseMeta.nav.map(group => ({ ...group, items: group.items.filter(item => !(live && demoOnly.includes(item.route))).map(item => ({ ...item, badge: item.match ? cases.filter(c => nextStep(c).actor === actorOf).length || undefined : item.badge })) })),
+    nav: baseMeta.nav.map(group => ({ ...group, items: group.items.filter(item => !(live && demoOnly.includes(item.route))).map(item => live && item.route === "jelajahi" ? { ...item, route: "planner/pelaku" } : item).map(item => ({ ...item, badge: item.match ? cases.filter(c => nextStep(c).actor === actorOf).length || undefined : item.badge })) })),
   };
   const path = route.split("?")[0];
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -255,7 +255,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </button>
         </div>
         <div className="mt-1 rounded-lg bg-black/15 px-2 py-1.5 text-center text-[12px] leading-relaxed text-cream/40">
-          Prototipe VAKSARA · data ilustratif
+          {live ? "VAKSARA 2.0 · akun terverifikasi email" : "Prototipe VAKSARA · data ilustratif"}
         </div>
       </div>
     </>
@@ -408,7 +408,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           {role === "couple" && !["planner", "planner/rencana", "trust"].includes(path) && (
             <div className="mb-4 hidden flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-white/70 px-3 py-2 md:flex">
               <div className="flex items-center gap-2 text-[14px] text-muted">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ink text-[12px] font-bold text-cream">NA</span>
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ink text-[12px] font-bold text-cream">{meta.name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase() || "VA"}</span>
                 <span>{contextCase ? "Kerja sama: " : live ? "Akun: " : "Profil demo: "}<strong className="font-semibold text-ink">{contextCase?.vendor ?? meta.name}</strong>{contextCase ? " · " + contextCase.eventDate : ""}</span>
               </div>
               <Badge tone={live && syncStatus === "error" ? "red" : "green"} dot>{live ? (syncStatus === "saving" ? "Menyimpan…" : syncStatus === "error" ? "Belum tersimpan" : "Tersimpan di server") : "Mode data prototipe"}</Badge>
@@ -417,10 +417,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           {children}
         </main>
         <footer className="mx-auto hidden max-w-[1280px] flex-col gap-2 border-t border-line/70 px-4 py-4 text-[13px] text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:flex">
-          <span>VAKSARA · Ruang kerja {meta.label.toLowerCase()} · Prototipe 2.0</span>
+          <span>VAKSARA · Ruang kerja {meta.label.toLowerCase()} · {live ? "2.0" : "Prototipe 2.0"}</span>
           <span className="flex flex-wrap gap-x-3 gap-y-1">
             <button onClick={() => navigate("bantuan")} className="hover:text-ink">Panduan penggunaan</button>
-            <span>Data ilustratif</span>
+            <span>{live ? "Data tersimpan di server" : "Data ilustratif"}</span>
             <span>Bahasa Indonesia</span>
           </span>
         </footer>

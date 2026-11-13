@@ -28,7 +28,7 @@ import VendorWorkspace from "@/pages/Vendor";
 import { AppProvider, roleForRoute, useApp } from "@/store";
 import { useEffect } from "react";
 import { LiveProvider, useLive } from "@/LiveContext";
-import { LiveNotice, LiveScreening, LiveSignupPage, LiveVendorProfile } from "@/pages/LiveAccount";
+import { LiveNotice, LiveScreening, LiveSignupPage, LiveVendorProfile, LiveVendorSearch } from "@/pages/LiveAccount";
 
 function NotFound() {
   const { navigate } = useApp();
@@ -43,9 +43,13 @@ function NotFound() {
 }
 
 function Router() {
-  const { route } = useApp();
+  const { route, navigate } = useApp();
   const { plan } = useEventPlan();
   const { live, profile, ready } = useLive();
+  // Akun keluarga tetap di ruang kerja saat mencari pelaku budaya.
+  useEffect(() => {
+    if (live && ready && profile?.role === "couple" && /^jelajahi(\?|$)/.test(route)) navigate(route.replace(/^jelajahi/, "planner/pelaku"));
+  }, [live, ready, profile?.role, route, navigate]);
   const path = route.split("?")[0].replace(/\/+$/, "") || "beranda";
   const segments = path.split("/").filter(Boolean);
   const role = roleForRoute(path);
@@ -79,10 +83,11 @@ function Router() {
     : (path === "demo" || path === "akun/kontak" || path === "vendor/kontak") ? <LiveNotice title="Fitur khusus akun demo" text="Demo terpandu dan simulasi OTP hanya untuk akun demo. Akun VAKSARA Anda sudah terverifikasi lewat email." action={{ label: "Ke ruang saya", to: profile?.role === "vendor" ? "vendor/ringkasan" : "planner" }} />
       : role === "admin" && !profile?.is_admin ? <LiveNotice title="Khusus peninjau VAKSARA" text="Halaman ini hanya untuk akun peninjau yang ditetapkan pengelola." action={{ label: "Kembali", to: profile?.role === "vendor" ? "vendor/ringkasan" : "planner" }} />
         : role === "vendor" && profile?.role !== "vendor" && !profile?.is_admin ? <LiveNotice title="Khusus akun pelaku budaya" text="Akun Anda terdaftar sebagai keluarga. Halaman ini untuk pelaku budaya." action={{ label: "Ke ruang keluarga", to: "planner" }} />
-          : path === "vendor/profil" ? <LiveVendorProfile />
+          : path === "vendor/profil" || path === "vendor/verifikasi" ? <LiveVendorProfile />
             : path === "admin/screening" ? <LiveScreening />
               : null;
   if (liveBlock) content = liveBlock;
+  else if (path === "planner/pelaku") content = <LiveVendorSearch />;
   else if (live && ["akun/daftar", "vendor/daftar"].includes(path)) content = <LiveNotice title="Anda sudah masuk" text="Akun VAKSARA Anda sudah aktif." action={{ label: "Ke ruang saya", to: profile?.role === "vendor" ? "vendor/profil" : "planner" }} />;
   else if (liveEnabled && ["akun/daftar", "vendor/daftar"].includes(path)) content = <LiveSignupPage vendor={path === "vendor/daftar"} />;
   else if (["akun/daftar", "vendor/daftar"].includes(path)) content = <Registration key={path} />;

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AtSign, BadgeCheck, Clock3, ExternalLink, MessageCircle, ShieldAlert } from "lucide-react";
 import { Alert, Badge, Button, Card, Checkbox, Field, Input, PageHeader, Select, Textarea } from "@/components/ui";
 import { LiveAuthForm } from "@/components/LiveAuth";
+import PublicDirectory from "@/pages/PublicDirectory";
 import { useLive, type Listing, type ListingInput } from "@/LiveContext";
 import { useApp } from "@/store";
 import { useCooperation } from "@/CooperationContext";
@@ -154,5 +155,32 @@ export function LiveScreening() {
         <div className="mt-3 flex flex-wrap gap-2"><Button size="sm" onClick={() => decide(l, "approved")}>Setujui & tampilkan</Button><Button size="sm" variant="secondary" onClick={() => decide(l, "rejected")}>Minta perbaikan</Button></div>
       </Card>;
     })}</div>
+  </>;
+}
+
+/** Cari pelaku budaya di dalam ruang kerja: pelaku terdaftar (dapat dikirimi permintaan) + direktori usaha Makassar. */
+export function LiveVendorSearch() {
+  const { route, navigate } = useApp();
+  const { live, profile } = useLive();
+  const params = new URLSearchParams(route.split("?")[1] ?? "");
+  const [q, setQ] = useState(params.get("q") ?? params.get("kategori") ?? "");
+  const { items, loaded } = useLiveListings();
+  const needle = q.trim().toLowerCase();
+  const registered = items.filter(l => !needle || `${l.name} ${l.category} ${l.area} ${l.description}`.toLowerCase().includes(needle));
+  const canRequest = !live || profile?.role === "couple";
+  return <>
+    <PageHeader title="Cari pelaku budaya" description="Pelaku yang terdaftar dan lolos peninjauan dapat langsung dikirimi permintaan. Usaha di direktori Makassar dapat dihubungi lewat WhatsApp atau media sosial mereka." />
+    <label className="relative mb-4 block"><span className="sr-only">Cari pelaku terdaftar</span><Input aria-label="Cari pelaku terdaftar" value={q} onChange={e => setQ(e.target.value)} placeholder="Cari nama, layanan, atau wilayah, mis. mappacci, katering, Gowa" /></label>
+    <section aria-label="Pelaku terdaftar" className="mb-8">
+      <div className="flex flex-wrap items-end justify-between gap-2"><div><h2 className="font-display text-2xl text-ink">Terdaftar di VAKSARA</h2><p className="mt-1 text-sm text-muted">Identitas, konteks budaya, dan persetujuan publikasi sudah ditinjau.</p></div><Button size="sm" variant="secondary" onClick={() => navigate("planner/permintaan-terbuka")}>Pasang permintaan terbuka</Button></div>
+      {!loaded && <Card className="mt-3 p-5 text-sm text-muted">Memuat…</Card>}
+      {loaded && registered.length === 0 && <Card className="mt-3 p-5"><p className="text-sm text-ink-soft">{items.length === 0 ? "Belum ada pelaku budaya yang lolos peninjauan. Pasang permintaan terbuka agar pelaku yang mendaftar dapat menawarkan layanan kepada Anda." : "Tidak ada pelaku terdaftar yang cocok dengan pencarian ini."}</p></Card>}
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{registered.map(l => <LiveListingCard key={l.id} l={l} onRequest={canRequest ? () => navigate("planner/alur?vendor=" + encodeURIComponent(l.name)) : undefined} />)}</div>
+    </section>
+    <section aria-label="Direktori vendor Makassar">
+      <h2 className="font-display text-2xl text-ink">Direktori vendor Makassar</h2>
+      <p className="mb-2 mt-1 text-sm text-muted">Usaha pernikahan yang informasinya terbuka di internet dan belum terdaftar di VAKSARA.</p>
+      <PublicDirectory embedded initialQuery="" />
+    </section>
   </>;
 }

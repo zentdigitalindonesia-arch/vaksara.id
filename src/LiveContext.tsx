@@ -10,12 +10,13 @@ export type ListingInput = Pick<Listing, "name" | "category" | "area" | "descrip
 const LIVE_USER = "vx-live-user";
 const BASELINE = "vx-synced";
 // Data perencanaan pribadi yang disimpan per akun di tabel user_state.
-export const SYNC_KEYS = ["vaksara-event-plan-v1", "vaksara-planner-checklist-v1", "vaksara-planner-guests-v1", "vaksara-planner-expenses-v1"] as const;
+export const SYNC_KEYS = ["vaksara-event-plan-v1", "vaksara-planner-checklist-v1", "vaksara-planner-guests-v1", "vaksara-planner-expenses-v1", "vaksara-planner-rundown-v1"] as const;
 const BLANK: Record<string, string> = {
   "vaksara-event-plan-v1": JSON.stringify({ schema: 1, name: "", date: "", location: "", budget: "", needs: [], step: 0, complete: false }),
   "vaksara-planner-checklist-v1": "[]",
   "vaksara-planner-guests-v1": "[]",
   "vaksara-planner-expenses-v1": "[]",
+  "vaksara-planner-rundown-v1": "[]",
 };
 
 /** Dipakai saat render pertama: true bila browser ini sedang memakai akun nyata. */

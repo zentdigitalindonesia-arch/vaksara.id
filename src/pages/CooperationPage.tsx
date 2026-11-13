@@ -70,7 +70,7 @@ export default function CooperationPage({ workspace, caseId }: { workspace?: Wor
   const proofField = <Field label={T("Referensi bukti demo")}><Textarea aria-label="Bukti alur" value={proof} maxLength={2000} onChange={e => setProof(e.target.value)} placeholder={T("Contoh: catatan hasil layanan atau referensi bukti transfer demo. Bukan unggah file nyata.")} /></Field>;
   return <>
     <PageHeader title={workspace ? workspaceTitles[workspace] : "Alur kerja sama tersambung"} back={workspace ? { label: "Kembali ke daftar", onClick: () => navigate(caseRoute(actor, workspace)) } : undefined} description="Satu catatan: kebutuhan → penawaran → perjanjian → pelaksanaan → BAST → penutupan." />
-    {!workspace && <Alert tone="info" title="Cara mencoba" action={<Button size="sm" variant="secondary" onClick={() => navigate("demo")}>{T("Buka demo terpandu")}</Button>}>Pilih peran di bawah. Kotak "Langkah berikutnya" memberi tahu giliran siapa dan tombol mana yang ditekan. Semua data dan transaksi adalah simulasi di browser ini.</Alert>}
+    {!workspace && !live && <Alert tone="info" title="Cara mencoba" action={<Button size="sm" variant="secondary" onClick={() => navigate("demo")}>{T("Buka demo terpandu")}</Button>}>Pilih peran di bawah. Kotak "Langkah berikutnya" memberi tahu giliran siapa dan tombol mana yang ditekan. Semua data dan transaksi adalah simulasi di browser ini.</Alert>}
     {storageError && <Alert tone="error">Penyimpanan browser tidak tersedia. Perubahan dapat hilang saat halaman dimuat ulang.</Alert>}
     {roleBar}
     {error && <div role="alert"><Alert tone="error" title="Langkah belum dapat dilakukan">{error}</Alert></div>}

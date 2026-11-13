@@ -6,12 +6,13 @@ import { facebookUrl, handleLabel, instagramUrl, publicVendorCategories, publicV
 import { useApp } from "@/store";
 
 /** Direktori publik usaha pernikahan Makassar–Gowa yang belum bermitra; dipakai untuk menunjukkan pasar nyata dan target ajakan bergabung. */
-export default function PublicDirectory() {
+export default function PublicDirectory({ embedded = false, initialQuery = "" }: { embedded?: boolean; initialQuery?: string }) {
   const { navigate } = useApp();
   const [cat, setCat] = useState("Semua");
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(initialQuery);
+  const Wrap = embedded ? EmbeddedWrap : PublicContainer;
   const list = publicVendors.filter(v => (cat === "Semua" || v.category === cat) && (q.trim() === "" || `${v.name} ${v.address} ${v.note} ${v.category}`.toLowerCase().includes(q.trim().toLowerCase())));
-  return <PublicContainer className="py-8 sm:py-10">
+  return <Wrap className={embedded ? "" : "py-8 sm:py-10"}>
     <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-sand-deep">Direktori publik</p>
     <h1 className="mt-2 font-display text-3xl text-ink sm:text-4xl">Usaha pernikahan di Makassar & Gowa</h1>
     <p className="mt-3 max-w-3xl text-[15px] leading-relaxed text-muted">Fotografer, sanggar seni, katering, perias, dan rumah pengantin yang informasinya terbuka di internet. Gunakan tautan ke Instagram atau situs mereka untuk menghubungi langsung.</p>
@@ -37,6 +38,10 @@ export default function PublicDirectory() {
       {v.source && <p className="mt-3 text-[12px] text-muted">Sumber: {/^https?:\/\//.test(v.source) ? <a href={v.source} target="_blank" rel="noopener noreferrer" className="underline hover:text-ink">{new URL(v.source).hostname.replace(/^www\./, "")}</a> : v.source}</p>}
     </li>)}</ul>
     {list.length === 0 && <p className="mt-6 text-sm text-muted">Tidak ada usaha yang cocok dengan pencarian ini.</p>}
-    <div className="mt-8 flex flex-col gap-3 rounded-[20px] bg-ink p-5 text-cream sm:flex-row sm:items-center sm:justify-between"><p className="text-[15px]">Pemilik usaha di daftar ini? Daftarkan profil Anda agar dapat menerima permintaan, membuat penawaran, dan memakai Dana Amanah.</p><Button variant="gold" onClick={() => navigate("vendor/daftar")}>Daftar sebagai pelaku</Button></div>
-  </PublicContainer>;
+    {!embedded && <div className="mt-8 flex flex-col gap-3 rounded-[20px] bg-ink p-5 text-cream sm:flex-row sm:items-center sm:justify-between"><p className="text-[15px]">Pemilik usaha di daftar ini? Daftarkan profil Anda agar dapat menerima permintaan, membuat penawaran, dan memakai Dana Amanah.</p><Button variant="gold" onClick={() => navigate("vendor/daftar")}>Daftar sebagai pelaku</Button></div>}
+  </Wrap>;
+}
+
+function EmbeddedWrap({ className, children }: { className?: string; children: React.ReactNode }) {
+  return <div className={className}>{children}</div>;
 }

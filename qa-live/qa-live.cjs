@@ -21,6 +21,10 @@ let n = 0; const ok = m => { n++; console.log('PASS', m); };
     await p.getByLabel('Email daftar', { exact: true }).fill(email);
     await p.getByLabel('Nomor WhatsApp', { exact: true }).fill(phone);
     await p.getByLabel('Kata sandi daftar', { exact: true }).fill('rahasia123');
+    if (await p.getByLabel('Kata sandi daftar', { exact: true }).getAttribute('type') !== 'password') throw new Error('sandi tidak tersembunyi');
+    await p.getByRole('button', { name: 'Lihat sandi' }).first().click();
+    if (await p.getByLabel('Kata sandi daftar', { exact: true }).getAttribute('type') !== 'text') throw new Error('ikon mata tidak menampilkan sandi');
+    await p.getByRole('button', { name: 'Sembunyikan sandi' }).first().click();
     await click(p, 'Daftar dan kirim kode verifikasi');
     await p.getByText(/Centang persetujuan/).waitFor(); // wajib setuju
     await p.locator('label', { hasText: 'Saya setuju data akun' }).click();
@@ -72,6 +76,28 @@ let n = 0; const ok = m => { n++; console.log('PASS', m); };
     const html = await c.evaluate(() => document.body.innerText);
     if (/Nurul/.test(html)) throw new Error('data demo Nurul muncul di akun nyata');
     ok('keluarga mendaftar; rencana kosong tanpa data contoh');
+    ok('ikon mata menampilkan dan menyembunyikan kata sandi');
+    // Wizard rencana: kebutuhan lainnya bisa diketik
+    await c.locator('#event-name').fill('Pernikahan Andi & Rahma');
+    await click(c, 'Lanjut susun kebutuhan');
+    await c.locator('label', { hasText: 'Pemandu prosesi adat' }).click();
+    await c.locator('#event-other-needs').fill('Pemain kecapi, MC berbahasa Bugis');
+    await click(c, 'Lihat rencana saya');
+    await c.getByText('Pemain kecapi, MC berbahasa Bugis').first().waitFor();
+    await c.waitForTimeout(3500);
+    if (!/kecapi/.test(psql("select value::text from user_state where key='vaksara-event-plan-v1' and user_id=(select id from profiles where email='keluarga@uji.id')"))) throw new Error('kebutuhan lainnya tidak tersimpan di server');
+    ok('kebutuhan lainnya dapat diketik dan tersimpan di server');
+    await hard(c, 'planner/rundown');
+    await c.getByText(/Belum ada mata acara/).waitFor();
+    if (/Nurhaeni|Sulapa|Lensa Pesisir/.test(await c.evaluate(() => document.body.innerText))) throw new Error('rundown contoh muncul');
+    await hard(c, 'planner/anggaran');
+    if (/127\.500\.000|62\.050\.000/.test(await c.evaluate(() => document.body.innerText))) throw new Error('angka anggaran contoh muncul');
+    ok('rundown dan anggaran akun baru kosong, tanpa data contoh');
+    await hard(c, 'jelajahi');
+    await c.waitForFunction(() => /planner\/pelaku/.test(location.hash));
+    await c.getByRole('heading', { name: 'Direktori vendor Makassar' }).waitFor();
+    if (!(await c.locator('aside, nav').first().count())) throw new Error('bukan di dalam ruang kerja');
+    ok('cari pelaku budaya tetap di dalam ruang kerja dan menampilkan direktori vendor Makassar');
     await c.evaluate(() => { location.hash = '#/jelajahi'; });
     await c.waitForTimeout(1200);
     if (await c.getByText('Sanggar Uji Batara').count()) throw new Error('pelaku belum disetujui sudah tampil');
@@ -90,14 +116,16 @@ let n = 0; const ok = m => { n++; console.log('PASS', m); };
     await a.getByText('Terverifikasi & tampil', { exact: true }).waitFor();
     ok('admin meninjau dan menyetujui pelaku');
 
+    await hard(c, 'planner/pelaku');
+    await c.locator('section[aria-label="Pelaku terdaftar"]').getByText('Sanggar Uji Batara').waitFor();
+    ok('pelaku yang disetujui tampil di pencarian dalam ruang kerja');
     // keluarga non-admin tidak bisa membuka screening
     await c.evaluate(() => { location.hash = '#/admin/screening'; });
     await c.getByText('Khusus peninjau VAKSARA').waitFor();
     ok('akun bukan admin ditolak dari halaman peninjau');
 
     // ---------- Permintaan langsung ----------
-    await hard(c, 'jelajahi');
-    await c.getByRole('heading', { name: 'Pelaku budaya terdaftar' }).waitFor();
+    await hard(c, 'planner/pelaku');
     await c.locator('section[aria-label="Pelaku terdaftar"]').getByRole('button', { name: 'Kirim permintaan' }).click();
     await c.waitForURL(/planner\/alur\?vendor=/);
     await c.getByLabel('Tanggal utama alur', { exact: true }).fill('2027-08-20');

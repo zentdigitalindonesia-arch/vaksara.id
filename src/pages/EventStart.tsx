@@ -1,7 +1,7 @@
 import { liveBoot } from "@/LiveContext";
 import { useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/brand";
-import { Button, Card, Input } from "@/components/ui";
+import { Button, Textarea, Card, Input } from "@/components/ui";
 import { formatIDR } from "@/data";
 import { blankPlan, needs, planError, useEventPlan } from "@/EventPlanContext";
 import { useCooperation } from "@/CooperationContext";
@@ -29,7 +29,7 @@ export default function EventStart() {
     const message = planError(draft);
     if (message) { setError(message); return; }
     setError("");
-    const updated = { ...draft, demo: false, name: draft.name.trim(), location: draft.location.trim(), needs: skip ? [] : draft.needs, step: next, complete: draft.complete };
+    const updated = { ...draft, demo: false, name: draft.name.trim(), location: draft.location.trim(), needs: skip ? [] : draft.needs, otherNeeds: skip ? "" : (draft.otherNeeds ?? "").trim(), step: next, complete: draft.complete };
     if (save(updated)) { setDraft(updated); setStep(next); setError(""); }
   };
   const finish = () => {
@@ -41,7 +41,7 @@ export default function EventStart() {
   return <div className="min-h-screen bg-cream text-ink">
     <header className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-5 py-5"><Logo /><button className="min-h-11 text-sm underline" onClick={() => navigate(plan.complete ? "planner" : "beranda")}>{plan.complete ? "Kembali ke rencana" : "Kembali ke beranda"}</button></header>
     <main className="mx-auto max-w-2xl px-5 pb-12 pt-5">
-      <p className="mb-6 rounded-xl border border-line bg-white px-4 py-3 text-sm leading-relaxed">Demo lokal · Gunakan data contoh. Rencana disimpan di browser ini, belum tersinkron ke perangkat lain.</p>
+      <p className="mb-6 rounded-xl border border-line bg-white px-4 py-3 text-sm leading-relaxed">{liveBoot() ? "Rencana tersimpan di akun VAKSARA Anda dan dapat dibuka dari HP maupun komputer." : "Demo lokal · Gunakan data contoh. Rencana disimpan di browser ini, belum tersinkron ke perangkat lain."}</p>
       <ol aria-label="Langkah membuat rencana" className="mb-8 grid grid-cols-3 gap-2 text-sm">{["Buat acara", "Kebutuhan", "Lihat rencana"].map((label, i) => <li key={label} aria-current={step === i ? "step" : undefined} className={`rounded-xl border px-3 py-3 ${step === i ? "border-ink bg-ink text-white" : "border-line"}`}><span className="block text-xs opacity-70">Langkah {i + 1}</span>{label}</li>)}</ol>
       <h1 ref={title} tabIndex={-1} className="font-display text-3xl outline-none sm:text-4xl">{["Mari buat acara Anda", "Apa yang Anda butuhkan?", "Rencana awal Anda siap"][step]}</h1>
       <p className="mb-6 mt-3 text-base leading-relaxed text-muted">{["Cukup mulai dengan nama acara. Tanggal, lokasi, dan anggaran boleh ditentukan nanti.", "Pilih layanan yang ingin dicari. Pilihan bisa diubah nanti dan belum memesan apa pun.", "Periksa sebentar, lalu mulai mencari layanan untuk acara Anda."][step]}</p>
@@ -55,12 +55,16 @@ export default function EventStart() {
       </form>}
       {step === 1 && <div>
         <fieldset className="grid gap-3"><legend className="sr-only">Pilih kebutuhan layanan</legend>{needs.map(n => <label key={n.id} className={`flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border p-4 text-base ${draft.needs.includes(n.id) ? "border-ink bg-sage" : "border-line bg-white"}`}><input type="checkbox" className="h-5 w-5 accent-[#16332e]" checked={draft.needs.includes(n.id)} onChange={e => setDraft({ ...draft, needs: e.target.checked ? [...draft.needs, n.id] : draft.needs.filter(id => id !== n.id) })} />{n.label}</label>)}</fieldset>
+        <label className="mt-4 block text-base font-semibold" htmlFor="event-other-needs">Kebutuhan lainnya <span className="font-normal text-muted">(opsional)</span>
+          <Textarea id="event-other-needs" className="mt-2 text-base" rows={3} maxLength={500} value={draft.otherNeeds ?? ""} placeholder="Contoh: dekorasi pelaminan Bugis, pemain kecapi, sewa baju bodo untuk keluarga, MC berbahasa Bugis" onChange={e => setDraft({ ...draft, otherNeeds: e.target.value })} />
+          <span className="mt-1 block text-sm font-normal text-muted">Tulis kebutuhan yang tidak ada di pilihan di atas. Pisahkan dengan koma.</span>
+        </label>
         <p className="my-4 text-sm text-muted">Tidak perlu memilih prosesi adat jika belum sesuai kebutuhan keluarga Anda.</p>
         <Button size="lg" full onClick={() => advance(2)}>Lihat rencana saya</Button>
         <Button size="lg" full variant="ghost" className="mt-2" onClick={() => advance(2, true)}>Lewati, tentukan nanti</Button>
         <button className="mt-4 min-h-11 text-sm underline" onClick={() => advance(0)}>Kembali ke data acara</button>
       </div>}
-      {step === 2 && <div className="space-y-5"><Card className="space-y-4 p-5 sm:p-6"><h2 className="font-display text-2xl">{draft.name}</h2><p>{eventDate(draft.date)}</p><p>{draft.location || "Lokasi belum ditentukan"}</p><p>Target anggaran: {draft.budget ? formatIDR(Number(draft.budget)) : "Belum ditentukan"}</p><div><h3 className="font-semibold">Kebutuhan layanan</h3><p className="mt-2 leading-relaxed">{needs.filter(n => draft.needs.includes(n.id)).map(n => n.label).join(", ") || "Bisa dipilih nanti"}</p></div></Card><Button size="lg" full onClick={finish}>Mulai merencanakan</Button><button className="min-h-11 text-sm underline" onClick={() => advance(1)}>Kembali ubah kebutuhan</button></div>}
+      {step === 2 && <div className="space-y-5"><Card className="space-y-4 p-5 sm:p-6"><h2 className="font-display text-2xl">{draft.name}</h2><p>{eventDate(draft.date)}</p><p>{draft.location || "Lokasi belum ditentukan"}</p><p>Target anggaran: {draft.budget ? formatIDR(Number(draft.budget)) : "Belum ditentukan"}</p><div><h3 className="font-semibold">Kebutuhan layanan</h3><p className="mt-2 leading-relaxed">{needs.filter(n => draft.needs.includes(n.id)).map(n => n.label).join(", ") || "Bisa dipilih nanti"}</p>{draft.otherNeeds?.trim() && <p className="mt-2 leading-relaxed"><span className="font-semibold">Lainnya:</span> {draft.otherNeeds.trim()}</p>}</div></Card><Button size="lg" full onClick={finish}>Mulai merencanakan</Button><button className="min-h-11 text-sm underline" onClick={() => advance(1)}>Kembali ubah kebutuhan</button></div>}
     </main>
   </div>;
 }

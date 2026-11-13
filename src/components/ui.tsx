@@ -1,6 +1,6 @@
 import { useApp, type ToastTone } from "@/store";
 import { cn } from "@/utils/cn";
-import { ArrowLeft, BookOpen, Check, ChevronRight, CircleAlert, CircleCheck, FileText, Image as ImageIcon, Info, Loader2, ShieldCheck, UploadCloud, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Check, Eye, EyeOff, ChevronRight, CircleAlert, CircleCheck, FileText, Image as ImageIcon, Info, Loader2, ShieldCheck, UploadCloud, X } from "lucide-react";
 import React, { useEffect } from "react";
 
 export type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "gold" | "danger" | "soft" | "link";
@@ -333,6 +333,16 @@ const inputClass =
 
 export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={cn(inputClass, className)} />;
+}
+/** Kolom kata sandi dengan tombol mata untuk menampilkan/menyembunyikan isinya. */
+export function PasswordInput({ className, ...props }: Omit<React.InputHTMLAttributes<HTMLInputElement>, "type">) {
+  const [show, setShow] = React.useState(false);
+  return <span className="relative block">
+    <input {...props} type={show ? "text" : "password"} className={cn(inputClass, "pr-12", className)} />
+    <button type="button" onClick={e => { e.preventDefault(); setShow(v => !v); }} aria-label={show ? "Sembunyikan sandi" : "Lihat sandi"} aria-pressed={show} className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-muted hover:bg-cream hover:text-ink">
+      {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+    </button>
+  </span>;
 }
 export function Textarea({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return <textarea {...props} className={cn(inputClass, "min-h-[90px] resize-y leading-relaxed", className)} />;
