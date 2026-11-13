@@ -1,16 +1,14 @@
 import { cn } from "@/utils/cn";
 
 export function LogoMark({ className, tone = "dark" }: { className?: string; tone?: "dark" | "light" }) {
-  const ink = tone === "dark" ? "#16332E" : "#F7F4ED";
-  const accent = "#C1A06E";
   return (
-    <svg viewBox="0 0 40 40" className={cn("h-9 w-9", className)} aria-hidden="true">
-      <rect x="1" y="1" width="38" height="38" rx="11" fill={tone === "dark" ? "#16332E" : "#F7F4ED"} />
-      <path d="M11 12.5 20 28l9-15.5" fill="none" stroke={tone === "dark" ? "#F7F4ED" : ink} strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M15.3 12.5 20 20.6l4.7-8.1" fill="none" stroke={accent} strokeWidth="1.15" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="20" cy="31.4" r="1.35" fill={accent} />
-      <path d="M8.4 8.4h4.1M27.5 8.4h4.1M8.4 31.6v-4M31.6 31.6v-4" stroke={accent} strokeWidth="1" opacity=".65" strokeLinecap="round" />
-    </svg>
+    <img
+      src={tone === "dark" ? "/brand/vaksara-mark.png" : "/brand/vaksara-mark-light.png"}
+      alt=""
+      aria-hidden="true"
+      className={cn("h-10 w-10 object-contain", className)}
+      draggable={false}
+    />
   );
 }
 
@@ -23,7 +21,7 @@ export function Logo({ tone = "dark", compact = false }: { tone?: "dark" | "ligh
           <span
             className={cn(
               "font-display text-[1.32rem] font-semibold tracking-[0.16em]",
-              tone === "dark" ? "text-ink" : "text-cream"
+              tone === "dark" ? "text-[#A84329]" : "text-cream"
             )}
           >
             VAKSARA
@@ -31,10 +29,10 @@ export function Logo({ tone = "dark", compact = false }: { tone?: "dark" | "ligh
           <span
             className={cn(
               "mt-1.5 hidden text-[9px] font-semibold uppercase tracking-[0.22em] sm:block",
-              tone === "dark" ? "text-muted" : "text-cream/60"
+              tone === "dark" ? "text-[#A84329]/80" : "text-cream/60"
             )}
           >
-            Budaya · Pernikahan · Amanah
+            Warisan dalam setiap kisah
           </span>
         </span>
       )}
