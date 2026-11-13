@@ -17,7 +17,9 @@ import type { Cooperation } from "@/utils/cooperation";
 // Slug tidak ditulis apa adanya; yang disimpan hanya hash-nya agar tidak mudah ditemukan dari kode sumber.
 const SLUG_HASH = "25ajopl4l3g";
 const cyrb53 = (str: string) => { let h1 = 0xdeadbeef, h2 = 0x41c6ce57; for (let i = 0; i < str.length; i++) { const ch = str.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); } h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507); h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909); h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507); h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909); return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36); };
-export const isOwnerPath = (path: string) => path.length > 8 && path.length < 40 && !path.includes("/") && cyrb53(`vaksara-slug:${path}`) === SLUG_HASH;
+// Dengan server aktif, akses ditentukan status admin di database, sehingga tautan sederhana /pemilik aman dipakai.
+// Tanpa server (mode demo), tautan tersembunyi lama tetap berlaku.
+export const isOwnerPath = (path: string) => (liveEnabled && path === "pemilik") || (path.length > 8 && path.length < 40 && !path.includes("/") && cyrb53(`vaksara-slug:${path}`) === SLUG_HASH);
 const OWNER_EMAIL = "pemilik@vaksara.id";
 const OWNER_HASH = "7fde703eae90c0746427308a047ff06e11e3b462ad50768a3885a9b7c8f265ab";
 const OWNER_KEY = "vaksara-owner-session";
