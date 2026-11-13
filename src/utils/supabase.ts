@@ -75,10 +75,16 @@ export async function session(): Promise<AuthSession | null> {
   return refreshing;
 }
 
+// Kunci publishable baru (sb_publishable_…) bukan JWT: tanpa sesi, cukup header apikey (peran anon).
+// Kunci anon lama (JWT) tetap dikirim juga sebagai Bearer seperti klien resmi.
+function authHeader(token?: string): Record<string, string> {
+  if (token) return { Authorization: `Bearer ${token}` };
+  return KEY.startsWith("sb_") ? {} : { Authorization: `Bearer ${KEY}` };
+}
 export async function rest<T = unknown>(path: string, init: { method?: string; body?: unknown; prefer?: string; anon?: boolean; keepalive?: boolean } = {}): Promise<T> {
   if (!liveEnabled) throw new Error("Akun belum diaktifkan di server ini.");
   const s = init.anon ? null : await session();
-  const res = await fetch(`${URL_}/rest/v1/${path}`, { method: init.method ?? "GET", keepalive: init.keepalive === true, headers: { apikey: KEY, Authorization: `Bearer ${s?.access_token ?? KEY}`, "Content-Type": "application/json", ...(init.prefer ? { Prefer: init.prefer } : {}) }, body: init.body === undefined ? undefined : JSON.stringify(init.body) });
+  const res = await fetch(`${URL_}/rest/v1/${path}`, { method: init.method ?? "GET", keepalive: init.keepalive === true, headers: { apikey: KEY, ...authHeader(s?.access_token), "Content-Type": "application/json", ...(init.prefer ? { Prefer: init.prefer } : {}) }, body: init.body === undefined ? undefined : JSON.stringify(init.body) });
   const text = await res.text(); let data: unknown = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
   if (!res.ok) { const d = (data ?? {}) as Record<string, unknown>; throw new Error(String(d.message ?? d.hint ?? d.code ?? `HTTP ${res.status}`)); }
