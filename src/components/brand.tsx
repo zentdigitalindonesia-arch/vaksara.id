@@ -1,3 +1,4 @@
+import { liveEnabled } from "@/utils/supabase";
 import { cn } from "@/utils/cn";
 
 export function LogoMark({ className, tone = "dark" }: { className?: string; tone?: "dark" | "light" }) {
@@ -133,6 +134,7 @@ export function SectionHeading({
 }
 
 export function PrototypeNote({ className, children }: { className?: string; children?: React.ReactNode }) {
+  if (liveEnabled && !children) return null;
   return (
     <div className={cn("flex items-start gap-2 rounded-lg border border-sand/40 bg-sand-light/50 px-3 py-2 text-[14px] leading-relaxed text-ink-soft", className)}>
       <svg viewBox="0 0 20 20" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sand-deep" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">

@@ -1,3 +1,4 @@
+import { liveEnabled } from "@/utils/supabase";
 import { Motif, SectionHeading } from "@/components/brand";
 import { PractitionerCard } from "@/components/PractitionerCard";
 import { Badge, Button, Card, LinkArrow, Progress } from "@/components/ui";
@@ -101,8 +102,8 @@ export default function Landing() {
                 ))}
               </div>
               <div>
-                <p className="text-[13px] font-bold text-ink">Profil di demo adalah contoh</p>
-                <p className="text-[13px] text-muted">Ulasan kelak hanya dari kerja sama yang selesai BAST</p>
+                <p className="text-[13px] font-bold text-ink">{liveEnabled ? "Vendor dikurasi langsung oleh tim" : "Profil di demo adalah contoh"}</p>
+                <p className="text-[13px] text-muted">{liveEnabled ? "Ulasan hanya dari kerja sama yang selesai BAST" : "Ulasan kelak hanya dari kerja sama yang selesai BAST"}</p>
               </div>
             </div>
           </div>
@@ -144,7 +145,7 @@ export default function Landing() {
               <div className="mt-1.5 flex items-center gap-2">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink text-[12px] font-bold text-cream">TB</span>
                 <div className="min-w-0">
-                  <p className="truncate text-[13px] font-bold text-ink">Sanggar Demo Batara</p>
+                  <p className="truncate text-[13px] font-bold text-ink">{liveEnabled ? "Sanggar Batara" : "Sanggar Demo Batara"}</p>
                   <p className="text-[12px] text-muted">Prosesi Mappacci · VKS-0184</p>
                 </div>
               </div>
@@ -209,7 +210,7 @@ export default function Landing() {
           {[
             { icon: <Heart className="h-5 w-5" />, t: "Saya keluarga / calon pengantin", d: "Buat acara, cari pelaku budaya, dan catat kesepakatan dengan jelas.", cta: "Buat acara", to: "planner/mulai" },
             { icon: <Hand className="h-5 w-5" />, t: "Saya pelaku budaya", d: "Daftarkan layanan, terima permintaan, kirim penawaran, dan ajukan BAST.", cta: "Daftar sebagai pelaku", to: "vendor/daftar" },
-            { icon: <Sparkles className="h-5 w-5" />, t: "Saya ingin melihat cara kerjanya", d: "Ikuti satu kerja sama dari permintaan sampai Dana Amanah cair, langkah demi langkah.", cta: "Coba demo terpandu", to: "demo" },
+            liveEnabled ? { icon: <Sparkles className="h-5 w-5" />, t: "Saya mencari vendor sekarang", d: "Buka direktori vendor pernikahan Makassar lengkap dengan kontak WhatsApp, tanpa perlu akun.", cta: "Buka direktori", to: "direktori-makassar" } : { icon: <Sparkles className="h-5 w-5" />, t: "Saya ingin melihat cara kerjanya", d: "Ikuti satu kerja sama dari permintaan sampai Dana Amanah cair, langkah demi langkah.", cta: "Coba demo terpandu", to: "demo" },
           ].map((c, i) => (
             <button key={c.t} onClick={() => navigate(c.to)} className={cn("group rounded-2xl border p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md", i === 2 ? "border-ink bg-ink text-cream" : "border-line bg-white")}>
               <span className={cn("flex h-10 w-10 items-center justify-center rounded-xl", i === 2 ? "bg-sand text-ink" : "bg-sand-light text-sand-deep")}>{c.icon}</span>
@@ -226,7 +227,7 @@ export default function Landing() {
         <div className="mx-auto max-w-[1240px] px-4 py-7 sm:px-6">
           <div className="grid grid-cols-2 gap-y-5 md:grid-cols-4">
             {[
-              { v: String(practitioners.length), l: "profil contoh di demo", s: "bukan pelaku nyata" },
+              liveEnabled ? { v: "28", l: "usaha di direktori vendor Makassar", s: "kurasi dan verifikasi berjalan" } : { v: String(practitioners.length), l: "profil contoh di demo", s: "bukan pelaku nyata" },
               { v: String(categories.length), l: "kategori budaya & layanan", s: "prosesi hingga kriya" },
               { v: "2 pihak", l: "menyetujui tiap versi perjanjian", s: "revisi = persetujuan ulang" },
               { v: "Rp0", l: "penemuan & alur kerja sama dasar", s: "gratis untuk keluarga dan pelaku" },
@@ -238,14 +239,14 @@ export default function Landing() {
               </div>
             ))}
           </div>
-          <div className="mt-5 flex flex-col gap-2 border-t border-line/70 pt-4 sm:flex-row sm:items-center sm:gap-5">
+          {!liveEnabled && <div className="mt-5 flex flex-col gap-2 border-t border-line/70 pt-4 sm:flex-row sm:items-center sm:gap-5">
             <span className="shrink-0 text-[12px] font-bold uppercase tracking-[0.16em] text-muted">Contoh ekosistem prototipe</span>
             <div className="flex flex-wrap gap-x-5 gap-y-1.5">
               {["Sanggar Demo Batara", "Rumah Tenun Lipa' Sabbe", "Dapur Cita Nusantara", "Rumah Dekor Sulapa", "Lensa Pesisir"].map((x) => (
                 <span key={x} className="font-display text-[14px] text-ink-soft/75">{x}</span>
               ))}
             </div>
-          </div>
+          </div>}
         </div>
       </section>
 
@@ -273,7 +274,7 @@ export default function Landing() {
                   <span className={cn("flex h-9 w-9 items-center justify-center rounded-lg border", i === 0 ? "border-white/15 bg-white/10 text-sand" : "border-line bg-[#F7F4ED] text-sand-deep")}>
                     {categoryIcons[c.icon]}
                   </span>
-                  <span className={cn("text-[12px] font-bold uppercase tracking-wider", i === 0 ? "text-cream/45" : "text-muted")}>{c.count} profil</span>
+                  <span className={cn("text-[12px] font-bold uppercase tracking-wider", i === 0 ? "text-cream/45" : "text-muted")}>{liveEnabled ? "" : `${c.count} profil`}</span>
                 </div>
                 <h3 className={cn("relative mt-3 text-[15px] font-bold leading-snug", i === 0 ? "text-cream" : "text-ink")}>{c.name}</h3>
                 <p className={cn("relative mt-1 line-clamp-2 text-[14px] leading-relaxed", i === 0 ? "text-cream/55" : "text-muted")}>{c.description}</p>
@@ -292,12 +293,19 @@ export default function Landing() {
           <SectionHeading
             eyebrow="Pilihan VAKSARA"
             title="Pelaku budaya dengan rekam jejak yang dapat dibaca."
-            description="Profil di bawah menampilkan status verifikasi secara terbuka. Portofolio diperiksa untuk relevansi dan atribusi sumber — bukan untuk menilai estetika satu-satunya."
+            description={liveEnabled ? "Setiap vendor dikunjungi dan diperiksa sebelum tampil sebagai terverifikasi. Selama kurasi berjalan, direktori vendor Makassar tetap terbuka untuk semua." : "Profil di bawah menampilkan status verifikasi secara terbuka. Portofolio diperiksa untuk relevansi dan atribusi sumber — bukan untuk menilai estetika satu-satunya."}
             action={<LinkArrow onClick={() => navigate("jelajahi")}>Jelajahi direktori lengkap</LinkArrow>}
           />
+          {liveEnabled ? (
+            <div className="mt-6 grid gap-3 md:grid-cols-2">
+              <div className="rounded-xl border border-line bg-white p-5"><div className="text-[12px] font-bold uppercase tracking-[0.16em] text-sand-deep">Tersedia sekarang</div><h3 className="mt-1.5 font-display text-[1.25rem] font-semibold text-ink">Direktori vendor Makassar</h3><p className="mt-1.5 text-[14px] leading-relaxed text-muted">Sanggar seni, perias, katering, fotografer, dan gedung lengkap dengan kontak WhatsApp dan sumber datanya. Bisa dibuka tanpa akun.</p><button onClick={() => navigate("direktori-makassar")} className="mt-3 text-[14px] font-semibold text-ink underline decoration-sand underline-offset-2">Buka direktori</button></div>
+              <div className="rounded-xl border border-line bg-white p-5"><div className="text-[12px] font-bold uppercase tracking-[0.16em] text-sand-deep">Sedang berjalan</div><h3 className="mt-1.5 font-display text-[1.25rem] font-semibold text-ink">Kurasi vendor terverifikasi</h3><p className="mt-1.5 text-[14px] leading-relaxed text-muted">Tim VAKSARA mengunjungi, memeriksa, dan membuat perjanjian kerja sama dengan setiap vendor. Profil terverifikasi tampil di sini setelah lolos peninjauan tiga lapis.</p><button onClick={() => navigate("vendor/daftar")} className="mt-3 text-[14px] font-semibold text-ink underline decoration-sand underline-offset-2">Daftarkan usaha Anda</button></div>
+            </div>
+          ) : (
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {practitioners.slice(0, 4).map((p) => <PractitionerCard key={p.id} p={p} compact />)}
           </div>
+          )}
           <div className="mt-4 flex items-start gap-2 rounded-xl border border-sand/40 bg-sand-light/50 p-3">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-sand-deep" />
             <p className="text-[14px] leading-relaxed text-ink-soft">
@@ -368,7 +376,7 @@ export default function Landing() {
             </div>
             <div className="mt-6 flex flex-wrap gap-2">
               <Button onClick={startPlan} trailing={<ArrowRight className="h-3.5 w-3.5" />}>Mulai Rencana Acara</Button>
-              <Button variant="secondary" onClick={() => navigate("planner")}>Lihat demo planner</Button>
+              {!liveEnabled && <Button variant="secondary" onClick={() => navigate("planner")}>Lihat demo planner</Button>}
             </div>
           </div>
           <PlannerMock />
@@ -404,8 +412,8 @@ export default function Landing() {
                 </div>
                 <div className="rounded-lg border border-line bg-white p-3">
                   <div className="text-[12px] font-bold uppercase tracking-wider text-muted">Pihak kedua</div>
-                  <p className="mt-1 text-[14px] font-bold text-ink">Sanggar Demo Batara</p>
-                  <p className="text-[13px] text-muted">Pelaku budaya (contoh)</p>
+                  <p className="mt-1 text-[14px] font-bold text-ink">{liveEnabled ? "Sanggar Batara" : "Sanggar Demo Batara"}</p>
+                  <p className="text-[13px] text-muted">{liveEnabled ? "Pelaku budaya" : "Pelaku budaya (contoh)"}</p>
                 </div>
                 <div className="sm:col-span-2">
                   <div className="flex items-center justify-between text-[13px]">
@@ -427,7 +435,7 @@ export default function Landing() {
                 </div>
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-[#FBFAF6] px-4 py-2.5">
-                <span className="flex items-center gap-1 text-[13px] text-muted"><Lock className="h-3 w-3 text-sand-deep" /> Tanda tangan elektronik: simulasi prototipe</span>
+                <span className="flex items-center gap-1 text-[13px] text-muted"><Lock className="h-3 w-3 text-sand-deep" /> {liveEnabled ? "Disetujui kedua pihak di VAKSARA" : "Tanda tangan elektronik: simulasi prototipe"}</span>
                 <span className="text-[13px] font-semibold text-ink">Riwayat versi ▸</span>
               </div>
             </Card>
@@ -449,7 +457,7 @@ export default function Landing() {
             </div>
           </div>
           <p className="mt-3 text-[13px] leading-relaxed text-muted">
-            Prototipe: dokumen belum memiliki sertifikasi hukum. Pembayaran yang ditandai gateway merupakan simulasi dan tidak memproses uang nyata.
+            {liveEnabled ? "Setiap versi perjanjian dan pembayaran tercatat di akun kedua pihak, dan hanya berlaku setelah disetujui bersama." : "Prototipe: dokumen belum memiliki sertifikasi hukum. Pembayaran yang ditandai gateway merupakan simulasi dan tidak memproses uang nyata."}
           </p>
         </div>
       </section>
@@ -461,7 +469,7 @@ export default function Landing() {
             <div className="overflow-hidden rounded-[24px] border-[5px] border-white shadow-[0_25px_60px_-35px_rgba(22,51,46,.45)]">
               <img src={images.weaving} alt="Penenun mengerjakan kain tradisional dengan alat tenun" className="aspect-[5/4] w-full object-cover" loading="lazy" />
             </div>
-            <div className="absolute -bottom-5 right-3 w-[240px] rounded-xl border border-line bg-white p-3.5 shadow-xl sm:right-6">
+            {!liveEnabled && <div className="absolute -bottom-5 right-3 w-[240px] rounded-xl border border-line bg-white p-3.5 shadow-xl sm:right-6">
               <div className="flex items-center gap-2">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-sage text-[#3E7A5F]"><Heart className="h-4 w-4" /></span>
                 <div>
@@ -471,7 +479,7 @@ export default function Landing() {
               </div>
               <Progress value={68} tone="green" className="mt-2.5" height="h-1" />
               <p className="mt-2 text-[12px] leading-relaxed text-muted">*Angka demonstrasi prototipe, bukan realisasi transaksi.</p>
-            </div>
+            </div>}
             <div className="absolute -left-2 top-4 rounded-lg border border-sand/50 bg-cream/95 px-2.5 py-1.5 text-[12px] font-bold uppercase tracking-wider text-ink-soft backdrop-blur">
               Tenun Sengkang · Wajo
             </div>
@@ -493,13 +501,13 @@ export default function Landing() {
                 </div>
               ))}
             </div>
-            <blockquote className="mt-5 rounded-xl border border-sand/40 bg-sand-light/40 p-4">
+            {!liveEnabled && <blockquote className="mt-5 rounded-xl border border-sand/40 bg-sand-light/40 p-4">
               <p className="font-display text-[15px] leading-relaxed text-ink">"Tradisi kami bukan satu naskah yang sama untuk semua keluarga. Yang penting adalah kami duduk bersama dan saling mendengar."</p>
               <footer className="mt-2 flex items-center justify-between gap-3">
                 <span className="text-[13px] font-semibold text-ink-soft">Hj. Andi Nurhaeni · pemandu prosesi adat</span>
                 <span className="shrink-0 rounded bg-white/70 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-muted">Ilustrasi</span>
               </footer>
-            </blockquote>
+            </blockquote>}
             <Button variant="secondary" size="sm" className="mt-4" onClick={() => navigate("pengetahuan")} trailing={<ArrowRight className="h-3.5 w-3.5" />}>
               Jelajahi pengetahuan budaya
             </Button>
@@ -513,14 +521,14 @@ export default function Landing() {
           <SectionHeading
             eyebrow="Pilihan paket"
             title="Gratis untuk menemukan. Berbayar saat Anda butuh lebih."
-            description="Model bisnis prototipe: VAKSARA tidak mengambil komisi tersembunyi dari harga pelaku budaya. Setiap paket akan diumumkan sebelum ditagihkan."
+            description={liveEnabled ? "VAKSARA tidak mengambil komisi tersembunyi dari harga pelaku budaya. Paket berbayar dibuka bersamaan dengan peluncuran vendor terverifikasi." : "Model bisnis prototipe: VAKSARA tidak mengambil komisi tersembunyi dari harga pelaku budaya. Setiap paket akan diumumkan sebelum ditagihkan."}
             align="center"
           />
           <div className="mx-auto mt-7 grid max-w-5xl gap-3 md:grid-cols-3">
             {[
               { name: "Dasar", price: "Gratis", unit: "untuk keluarga & pelaku", desc: "Menemukan pelaku budaya dan mencatat kesepakatan dengan jelas.", features: ["Direktori & kontak WhatsApp", "Permintaan, penawaran & perjanjian", "Dana Amanah, DP, BAST & penutupan", "Artikel budaya (draf bersumber)"], cta: "Mulai gratis", dark: false },
-              { name: "Premium Keluarga", price: formatIDR(99000), unit: "/ acara · simulasi", desc: "Untuk keluarga besar yang mengelola persiapan bersama.", features: ["Kolaborasi keluarga hingga 5 orang", "Pengingat termin & jadwal", "Rundown & daftar tamu lanjutan", "Laporan anggaran siap cetak"], cta: "Coba rencana acara", dark: true },
-              { name: "Vendor Pro", price: formatIDR(49000), unit: "/ bulan · simulasi", desc: "Untuk pelaku budaya yang ingin mengelola usaha lebih rapi.", features: ["Profil & portofolio diperluas", "Kalender ketersediaan", "Template penawaran", "Laporan pendapatan · tidak membeli peringkat atau verifikasi"], cta: "Lihat ruang vendor", dark: false },
+              { name: "Premium Keluarga", price: formatIDR(99000), unit: (liveEnabled ? "/ acara" : "/ acara · simulasi"), desc: "Untuk keluarga besar yang mengelola persiapan bersama.", features: ["Kolaborasi keluarga hingga 5 orang", "Pengingat termin & jadwal", "Rundown & daftar tamu lanjutan", "Laporan anggaran siap cetak"], cta: "Coba rencana acara", dark: true },
+              { name: "Vendor Pro", price: formatIDR(49000), unit: (liveEnabled ? "/ bulan" : "/ bulan · simulasi"), desc: "Untuk pelaku budaya yang ingin mengelola usaha lebih rapi.", features: ["Profil & portofolio diperluas", "Kalender ketersediaan", "Template penawaran", "Laporan pendapatan · tidak membeli peringkat atau verifikasi"], cta: "Lihat ruang vendor", dark: false },
             ].map((plan) => (
               <div key={plan.name} className={cn("relative flex flex-col rounded-2xl border p-5", plan.dark ? "border-ink bg-ink text-cream shadow-lg" : "border-line bg-white")}>
                 {plan.dark && <span className="absolute -top-2.5 left-5 rounded-full bg-sand px-2 py-1 text-[12px] font-bold uppercase tracking-wider text-forest">Paling relevan</span>}
@@ -543,7 +551,7 @@ export default function Landing() {
             ))}
           </div>
           <p className="mx-auto mt-4 max-w-2xl text-center text-[13px] leading-relaxed text-muted">
-            Manajemen perjanjian lanjutan direncanakan sebagai layanan premium tambahan. Checkout akan diarahkan ke Xendit pada tahap produksi — prototipe ini tidak memproses pembayaran. Tidak semua tradisi atau layanan budaya cocok dimonetisasi; VAKSARA meninjau listing secara etis.
+            Manajemen perjanjian lanjutan direncanakan sebagai layanan premium tambahan. {liveEnabled ? "Paket berbayar dibuka bersamaan dengan peluncuran vendor terverifikasi. " : "Checkout akan diarahkan ke Xendit pada tahap produksi — prototipe ini tidak memproses pembayaran. "}Tidak semua tradisi atau layanan budaya cocok dimonetisasi; VAKSARA meninjau listing secara etis.
           </p>
         </div>
       </section>
@@ -618,7 +626,7 @@ function PlannerMock() {
           <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-[#D7BCA9]" /><span className="h-2 w-2 rounded-full bg-[#DCD5C5]" /><span className="h-2 w-2 rounded-full bg-[#CAD9CD]" />
           </div>
-          <div className="rounded bg-white px-3 py-0.5 text-[11px] text-muted ring-1 ring-line">app.vaksara.id/planner</div>
+          <div className="rounded bg-white px-3 py-0.5 text-[11px] text-muted ring-1 ring-line">vaksara.id/planner</div>
           <div className="flex items-center gap-1"><span className="h-4 w-4 rounded-full bg-sand-light" /><span className="h-1 w-4 rounded bg-line" /></div>
         </div>
         <div className="grid grid-cols-[64px_1fr] sm:grid-cols-[92px_1fr]">
@@ -668,7 +676,7 @@ function PlannerMock() {
                 <span className="text-[4.5px] text-muted">Juni 2027</span>
               </div>
               {[
-                { n: "Sanggar Demo Batara", a: "Rp5.550.000", d: "12 Jun", c: "bg-[#4C8068]" },
+                { n: liveEnabled ? "Sanggar Batara" : "Sanggar Demo Batara", a: "Rp5.550.000", d: "12 Jun", c: "bg-[#4C8068]" },
                 { n: "Lensa Pesisir Studio", a: "Rp5.700.000", d: "18 Jun", c: "bg-[#C08D3B]" },
               ].map((r) => (
                 <div key={r.n} className="mt-1 flex items-center gap-1.5">
@@ -690,7 +698,7 @@ function PlannerMock() {
       </div>
       <div className="absolute -bottom-4 -left-3 flex items-center gap-1.5 rounded-lg border border-line bg-white px-2.5 py-1.5 shadow-lg">
         <span className="flex h-4 w-4 items-center justify-center rounded-full bg-sage"><Check className="h-2.5 w-2.5 text-[#2B5949]" /></span>
-        <span className="text-[11px] font-semibold text-ink">Data tersimpan pada prototipe</span>
+        <span className="text-[11px] font-semibold text-ink">{liveEnabled ? "Tersimpan di akun Anda" : "Data tersimpan pada prototipe"}</span>
       </div>
     </div>
   );
