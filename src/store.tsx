@@ -1,4 +1,6 @@
 import { useCooperation } from "@/CooperationContext";
+import { liveBoot, liveUserId } from "@/LiveContext";
+import { friendly, rest } from "@/utils/supabase";
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
   practitioners,
@@ -122,14 +124,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [route, setRoute] = useState(getInitialRoute);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [authMode, setAuthMode] = useState<"masuk" | "daftar" | null>(null);
-  const [saved, setSaved] = useState<string[]>(["lipa-sabbe"]);
+  // Akun nyata tidak memuat data contoh dalam memori.
+  const [live] = useState(liveBoot);
+  const [saved, setSaved] = useState<string[]>(live ? [] : ["lipa-sabbe"]);
   const [compare, setCompare] = useState<string[]>([]);
   const inquiries: Inquiry[] = flow.cases.map(c => ({ id: c.id, practitionerId: practitioners.find(p => p.name === c.vendor)?.id ?? "", practitioner: c.vendor, message: c.request, date: c.eventDate, packageName: c.offer?.scope ?? "Konsultasi", status: c.phase === "draft" ? "Draf" : c.phase === "inquiry" ? "Terkirim" : c.phase === "declined" ? "Ditolak" : c.phase === "cancelled" ? "Dibatalkan" : c.phase === "completed" ? "Selesai" : "Dibalas", createdAt: c.history[0]?.time ?? "" }));
-  const [agreements, setAgreements] = useState<Agreement[]>(initialAgreements);
-  const [checklist, setChecklist] = usePersisted("vaksara-planner-checklist-v1", initialChecklist, isArrayOf({ id: "string", done: "boolean" }));
-  const [payments, setPayments] = useState<PaymentRecord[]>(initialPayments);
-  const [disputes, setDisputes] = useState<Dispute[]>(initialDisputes);
-  const [guests, setGuests] = usePersisted<{ name: string; group: string; party: number; rsvp: string; table: string; invitation: string }[]>("vaksara-planner-guests-v1", [
+  const [agreements, setAgreements] = useState<Agreement[]>(live ? [] : initialAgreements);
+  const [checklist, setChecklist] = usePersisted("vaksara-planner-checklist-v1", live ? [] : initialChecklist, isArrayOf({ id: "string", done: "boolean" }));
+  const [payments, setPayments] = useState<PaymentRecord[]>(live ? [] : initialPayments);
+  const [disputes, setDisputes] = useState<Dispute[]>(live ? [] : initialDisputes);
+  const [guests, setGuests] = usePersisted<{ name: string; group: string; party: number; rsvp: string; table: string; invitation: string }[]>("vaksara-planner-guests-v1", live ? [] : [
     { name: "Keluarga Andi Baso", group: "Keluarga", party: 6, rsvp: "Hadir", table: "A1", invitation: "Terkirim" },
     { name: "Rahmawati Husain", group: "Keluarga", party: 2, rsvp: "Hadir", table: "A2", invitation: "Terkirim" },
     { name: "Keluarga Saleh", group: "Keluarga", party: 5, rsvp: "Menunggu", table: "—", invitation: "Terkirim" },
@@ -139,7 +143,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     { name: "Nanda Ayu", group: "Kampus", party: 1, rsvp: "Menunggu", table: "—", invitation: "Belum dikirim" },
     { name: "Keluarga Ibu Suharti", group: "Tetangga", party: 4, rsvp: "Hadir", table: "C1", invitation: "Terkirim" },
   ], isArrayOf({ name: "string", group: "string", party: "number", rsvp: "string" }));
-  const [expenses, setExpenses] = usePersisted<{ id: string; category: string; label: string; amount: number; date: string }[]>("vaksara-planner-expenses-v1", [{ id: "demo-exp-1", category: "Busana", label: "Contoh pencatatan konsultasi busana (demo)", amount: 500000, date: "2026-10-25" }, { id: "demo-exp-2", category: "Dokumentasi", label: "Contoh biaya persiapan dokumentasi (demo)", amount: 750000, date: "2026-10-25" }], isArrayOf({ id: "string", category: "string", amount: "number" }));
+  const [expenses, setExpenses] = usePersisted<{ id: string; category: string; label: string; amount: number; date: string }[]>("vaksara-planner-expenses-v1", live ? [] : [{ id: "demo-exp-1", category: "Busana", label: "Contoh pencatatan konsultasi busana (demo)", amount: 500000, date: "2026-10-25" }, { id: "demo-exp-2", category: "Dokumentasi", label: "Contoh biaya persiapan dokumentasi (demo)", amount: 750000, date: "2026-10-25" }], isArrayOf({ id: "string", category: "string", amount: "number" }));
   const [notificationsRead, setNotificationsRead] = useState(false);
   const toastId = useRef(0);
 
@@ -165,6 +169,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     window.setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4800);
   }, []);
 
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
   const dismissToast = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
 
   const toggleSaved = useCallback((id: string) => {
@@ -209,10 +215,44 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     []
   );
   const addChecklist = useCallback((task: Omit<ChecklistItem, "id" | "done">) => setChecklist((prev) => [...prev, { ...task, id: `t-${Date.now().toString(36)}`, done: task.status === "done" }]), []);
-  const [openRequests, setOpenRequests] = usePersisted<OpenRequest[]>("vaksara-open-requests-v1", seedOpenRequests, isArrayOf({ id: "string", title: "string", status: "string" }));
-  const addOpenRequest = useCallback((r: Omit<OpenRequest, "id" | "createdAt" | "status" | "responses" | "mine" | "family"> & { family: string }) => setOpenRequests((prev) => [{ ...r, id: `or-${Date.now().toString(36)}`, mine: true, createdAt: new Date().toISOString().slice(0, 10), status: "open", responses: [] }, ...prev]), []);
-  const respondOpenRequest = useCallback((id: string, r: Omit<OpenRequestResponse, "id" | "at">) => setOpenRequests((prev) => prev.map((o) => (o.id === id ? { ...o, responses: [...o.responses.filter((x) => x.vendor !== r.vendor), { ...r, id: `rs-${Date.now().toString(36)}`, at: new Date().toISOString().slice(0, 10) }] } : o))), []);
-  const chooseOpenRequest = useCallback((id: string, vendor: string, caseId: string) => setOpenRequests((prev) => prev.map((o) => (o.id === id ? { ...o, status: "closed", chosen: vendor, caseId } : o))), []);
+  const [localRequests, setLocalRequests] = usePersisted<OpenRequest[]>("vaksara-open-requests-v1", seedOpenRequests, isArrayOf({ id: "string", title: "string", status: "string" }));
+  const [liveRequests, setLiveRequests] = useState<OpenRequest[]>([]);
+  const openRequests = live ? liveRequests : localRequests;
+  type ReqRow = { id: string; owner_id: string; family: string; category: string; title: string; event_date: string; location: string; budget: string; detail: string; status: "open" | "closed"; chosen: string | null; case_id: string | null; created_at: string; open_request_responses?: { id: string; vendor_name: string; note: string; price: number; created_at: string }[] };
+  const loadRequests = useCallback(async () => {
+    if (!live) return;
+    try {
+      const rows = await rest<ReqRow[]>("open_requests?select=*,open_request_responses(id,vendor_name,note,price,created_at)&order=created_at.desc");
+      const uid = liveUserId();
+      setLiveRequests(rows.map((r) => ({ id: r.id, family: r.family, mine: r.owner_id === uid, category: r.category, title: r.title, date: r.event_date, location: r.location, budget: r.budget, detail: r.detail, createdAt: r.created_at.slice(0, 10), status: r.status, chosen: r.chosen ?? undefined, caseId: r.case_id ?? undefined, responses: (r.open_request_responses ?? []).map((x) => ({ id: x.id, vendor: x.vendor_name, note: x.note, price: Number(x.price), at: x.created_at.slice(0, 10) })) })));
+    } catch { /* tampilkan data terakhir; dicoba lagi pada siklus berikutnya */ }
+  }, [live]);
+  useEffect(() => {
+    if (!live) return;
+    loadRequests();
+    const t = window.setInterval(() => { if (document.visibilityState === "visible") loadRequests(); }, 30000);
+    return () => window.clearInterval(t);
+  }, [live, loadRequests]);
+  const liveWrite = useCallback((work: Promise<unknown>, _done: string) => { work.then(() => { loadRequests(); }).catch((e) => { loadRequests(); toastRef.current(friendly(e), "error", "Belum tersimpan"); }); }, [loadRequests]);
+  const addOpenRequest = useCallback((r: Omit<OpenRequest, "id" | "createdAt" | "status" | "responses" | "mine" | "family"> & { family: string }) => {
+    const item: OpenRequest = { ...r, id: `or-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, mine: true, createdAt: new Date().toISOString().slice(0, 10), status: "open", responses: [] };
+    if (!live) { setLocalRequests((prev) => [item, ...prev]); return; }
+    setLiveRequests((prev) => [item, ...prev]);
+    liveWrite(rest("open_requests", { method: "POST", body: { id: item.id, family: r.family, category: r.category, title: r.title, event_date: r.date, location: r.location, budget: r.budget, detail: r.detail }, prefer: "return=minimal" }), "Permintaan terbuka tersimpan dan dapat dilihat pelaku budaya terverifikasi.");
+  }, [live, setLocalRequests, liveWrite]);
+  const respondOpenRequest = useCallback((id: string, r: Omit<OpenRequestResponse, "id" | "at">) => {
+    const response = { ...r, id: `rs-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, at: new Date().toISOString().slice(0, 10) };
+    const apply = (prev: OpenRequest[]) => prev.map((o) => (o.id === id ? { ...o, responses: [...o.responses.filter((x) => x.vendor !== r.vendor), response] } : o));
+    if (!live) { setLocalRequests(apply); return; }
+    setLiveRequests(apply);
+    liveWrite(rest("open_request_responses?on_conflict=request_id,vendor_id", { method: "POST", body: { id: response.id, request_id: id, vendor_name: r.vendor, note: r.note, price: r.price }, prefer: "resolution=merge-duplicates,return=minimal" }), "Minat Anda terkirim ke keluarga.");
+  }, [live, setLocalRequests, liveWrite]);
+  const chooseOpenRequest = useCallback((id: string, vendor: string, caseId: string) => {
+    const apply = (prev: OpenRequest[]) => prev.map((o) => (o.id === id ? { ...o, status: "closed" as const, chosen: vendor, caseId } : o));
+    if (!live) { setLocalRequests(apply); return; }
+    setLiveRequests(apply);
+    liveWrite(rest(`open_requests?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: { status: "closed", chosen: vendor, case_id: caseId }, prefer: "return=minimal" }), "Permintaan ditutup; kerja sama dengan pelaku terpilih dibuat.");
+  }, [live, setLocalRequests, liveWrite]);
   const addPayment = useCallback((p: PaymentRecord) => setPayments((prev) => [p, ...prev]), []);
   const addDispute = useCallback((d: Dispute) => setDisputes((prev) => [d, ...prev]), []);
   const updateDispute = useCallback(

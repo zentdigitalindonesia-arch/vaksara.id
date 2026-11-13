@@ -1,3 +1,4 @@
+import { liveBoot } from "@/LiveContext";
 import { useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/brand";
 import { Button, Card, Input } from "@/components/ui";
@@ -75,6 +76,7 @@ const daysUntil = (date: string) => Math.round((Date.parse(date + "T00:00:00Z") 
 
 // Menghapus semua data demo di browser ini lalu memuat ulang, sehingga contoh lengkap tampil kembali.
 export function ResetDemoButton({ className }: { className?: string }) {
+  if (liveBoot()) return null;
   return <button className={className ?? "min-h-11 text-sm font-semibold text-muted underline"} onClick={() => { if (!confirm("Kembalikan semua data demo ke contoh awal? Perubahan yang Anda buat di browser ini akan dihapus.")) return; try { Object.keys(localStorage).filter(k => k.startsWith("vaksara-")).forEach(k => localStorage.removeItem(k)); } catch { /* penyimpanan tidak tersedia */ } location.hash = "#/planner"; location.reload(); }}>Kembalikan data demo awal</button>;
 }
 

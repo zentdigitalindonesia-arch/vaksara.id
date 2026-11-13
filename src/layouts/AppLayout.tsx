@@ -6,6 +6,7 @@ import { Logo, LogoMark } from "@/components/brand";
 import { Avatar, Badge, Button } from "@/components/ui";
 import { roleForRoute, useApp, type Role } from "@/store";
 import { demoLogout, demoSession } from "@/utils/demo-login";
+import { useLive } from "@/LiveContext";
 import { cn } from "@/utils/cn";
 import {
   Megaphone,
@@ -138,11 +139,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const notifications = [...cases].sort((a, b) => (b.history[b.history.length - 1]?.time ?? "").localeCompare(a.history[a.history.length - 1]?.time ?? "")).slice(0, 3).map(c => ({ id: c.id, title: c.vendor, detail: c.request, time: c.history[c.history.length - 1]?.time ?? "", tone: "blue", to: caseRoute(role === "vendor" ? "vendor" : role === "admin" ? "admin" : "couple", nextView(c), c.id) }));
   const requestedCase = new URLSearchParams(route.split("?")[1] ?? "").get("case") ?? (["perjanjian", "pengiriman", "bast", "sengketa"].includes(route.split("/")[0]) ? route.split("/")[1]?.split("?")[0] : undefined);
   const contextCase = cases.find(c => c.id === requestedCase);
-  const session = demoSession();
+  const { live, profile, listing, syncStatus, email, logout } = useLive();
+  // Akun nyata: pemilih peran disembunyikan dan nama diambil dari profil akun.
+  const session = live ? { role: profile?.role ?? "couple", name: profile?.full_name ?? "" } : demoSession();
+  const signOut = () => { if (live) { logout(); return; } demoLogout(); navigate("beranda"); };
   const baseMeta = roleMeta[role];
+  const demoOnly = ["demo", "akun/kontak", "vendor/kontak"];
   const meta = {
-    ...baseMeta, sub: role === "couple" ? plan.name || "Acara Anda" : baseMeta.sub, name: role === "vendor" ? flow.accounts.vendor?.name ?? baseMeta.name : role === "couple" ? flow.accounts.couple?.name ?? baseMeta.name : baseMeta.name,
-    nav: baseMeta.nav.map(group => ({ ...group, items: group.items.map(item => ({ ...item, badge: item.match ? cases.filter(c => nextStep(c).actor === actorOf).length || undefined : item.badge })) })),
+    ...baseMeta, sub: role === "couple" ? plan.name || "Acara Anda" : role === "vendor" && live ? listing?.name ?? "Lengkapi profil layanan" : baseMeta.sub,
+    name: live ? profile?.full_name || email || "Akun VAKSARA" : role === "vendor" ? flow.accounts.vendor?.name ?? baseMeta.name : role === "couple" ? flow.accounts.couple?.name ?? baseMeta.name : baseMeta.name,
+    nav: baseMeta.nav.map(group => ({ ...group, items: group.items.filter(item => !(live && demoOnly.includes(item.route))).map(item => ({ ...item, badge: item.match ? cases.filter(c => nextStep(c).actor === actorOf).length || undefined : item.badge })) })),
   };
   const path = route.split("?")[0];
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -242,9 +248,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <Avatar name={meta.name} size="sm" className="border-white/20 bg-sand/20 text-sand" />
           <div className="min-w-0 flex-1">
             <div className="truncate text-[14px] font-bold text-cream">{meta.name}</div>
-            <div className="truncate text-[12px] text-cream/45">{role === "vendor" ? "Akun vendor demo" : role === "admin" ? "Trust Officer" : "Akun pengantin"}</div>
+            <div className="truncate text-[12px] text-cream/45">{live ? (syncStatus === "error" ? "Gagal menyimpan, mencoba lagi…" : syncStatus === "saving" ? "Menyimpan…" : "Akun VAKSARA · tersimpan") : role === "vendor" ? "Akun vendor demo" : role === "admin" ? "Trust Officer" : "Akun pengantin"}</div>
           </div>
-          <button onClick={() => { demoLogout(); navigate("beranda"); }} className="rounded-md p-1 text-cream/40 hover:bg-white/10 hover:text-cream" aria-label="Keluar">
+          <button onClick={signOut} className="rounded-md p-1 text-cream/40 hover:bg-white/10 hover:text-cream" aria-label="Keluar">
             <LogOut className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -363,7 +369,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <div className="absolute right-0 top-10 z-50 w-[240px] overflow-hidden rounded-xl border border-line bg-white shadow-xl">
                   <div className="border-b border-line px-3.5 py-3">
                     <div className="text-[15px] font-bold text-ink">{meta.name}</div>
-                    <div className="mt-0.5 text-[13px] text-muted">{meta.label} · mode prototipe</div>
+                    <div className="mt-0.5 text-[13px] text-muted">{live ? email : `${meta.label} · mode prototipe`}</div>
                   </div>
                   <div className="p-1.5">
                     <button onClick={() => navigate("beranda")} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[14px] text-ink-soft hover:bg-cream"><ArrowLeftRight className="h-3.5 w-3.5" /> Situs publik</button>
@@ -371,7 +377,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <button onClick={() => navigate(role === "admin" ? "admin/audit" : "planner/planner")} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[14px] text-ink-soft hover:bg-cream"><Settings className="h-3.5 w-3.5" /> {role === "admin" ? "Audit trail" : "Pengaturan acara"}</button>
                   </div>
                   {session ? (
-                    <div className="border-t border-line px-2 py-2"><button onClick={() => { demoLogout(); navigate("beranda"); }} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[14px] font-semibold text-ink hover:bg-cream"><LogOut className="h-3.5 w-3.5" /> Keluar dari akun demo</button></div>
+                    <div className="border-t border-line px-2 py-2"><button onClick={signOut} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[14px] font-semibold text-ink hover:bg-cream"><LogOut className="h-3.5 w-3.5" /> {live ? "Keluar" : "Keluar dari akun demo"}</button></div>
                   ) : (
                     <div className="border-t border-line bg-[#FAF8F2] px-2 py-2">
                       <div className="mb-1 px-1 text-[12px] font-bold uppercase tracking-wider text-muted">Lihat sebagai</div>
@@ -403,9 +409,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="mb-4 hidden flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-white/70 px-3 py-2 md:flex">
               <div className="flex items-center gap-2 text-[14px] text-muted">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ink text-[12px] font-bold text-cream">NA</span>
-                <span>{contextCase ? "Kerja sama: " : "Profil demo: "}<strong className="font-semibold text-ink">{contextCase?.vendor ?? meta.name}</strong>{contextCase ? " · " + contextCase.eventDate : ""}</span>
+                <span>{contextCase ? "Kerja sama: " : live ? "Akun: " : "Profil demo: "}<strong className="font-semibold text-ink">{contextCase?.vendor ?? meta.name}</strong>{contextCase ? " · " + contextCase.eventDate : ""}</span>
               </div>
-              <Badge tone="green" dot>Mode data prototipe</Badge>
+              <Badge tone={live && syncStatus === "error" ? "red" : "green"} dot>{live ? (syncStatus === "saving" ? "Menyimpan…" : syncStatus === "error" ? "Belum tersimpan" : "Tersimpan di server") : "Mode data prototipe"}</Badge>
             </div>
           )}
           {children}

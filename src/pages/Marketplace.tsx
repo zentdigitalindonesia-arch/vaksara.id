@@ -1,4 +1,7 @@
 import { PractitionerCard } from "@/components/PractitionerCard";
+import { liveEnabled } from "@/utils/supabase";
+import { useLive } from "@/LiveContext";
+import { LiveListingCard, useLiveListings } from "@/pages/LiveAccount";
 import { Alert, Avatar, Button, Card, Checkbox, EmptyState, Select } from "@/components/ui";
 import { categories, formatIDR, practitioners, type Practitioner } from "@/data";
 import { useApp } from "@/store";
@@ -10,6 +13,22 @@ import { useEffect, useMemo, useState } from "react";
 const locations = ["Semua lokasi", "Makassar", "Gowa", "Maros", "Wajo", "Takalar"];
 const availabilities = ["Semua ketersediaan", "Tersedia Juni 2027", "Tersedia Juli 2027", "Respons cepat"];
 const sorts = ["Paling relevan", "Rating tertinggi", "Harga terendah", "Pengalaman terlama"];
+
+/** Pelaku budaya yang mendaftar sendiri dan sudah ditinjau (data server). */
+function RegisteredListings() {
+  const { items, loaded } = useLiveListings();
+  const { navigate, setAuthMode } = useApp();
+  const { live, profile } = useLive();
+  if (!loaded || items.length === 0) return null;
+  const request = (name: string) => { if (!live) { setAuthMode("masuk"); return; } if (profile?.role !== "couple") return; navigate("planner/alur?vendor=" + encodeURIComponent(name)); };
+  return <section className="mx-auto max-w-[1240px] px-4 pt-6 sm:px-6" aria-label="Pelaku terdaftar">
+    <h2 className="font-display text-2xl text-ink">Pelaku budaya terdaftar</h2>
+    <p className="mt-1 text-sm text-muted">Mendaftar sendiri di VAKSARA dan lolos peninjauan identitas, konteks budaya, dan persetujuan publikasi.</p>
+    <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{items.map(l => <LiveListingCard key={l.id} l={l} onRequest={!live || profile?.role === "couple" ? () => request(l.name) : undefined} />)}</div>
+    <h2 className="mt-8 font-display text-2xl text-ink">Profil contoh</h2>
+    <p className="mt-1 text-sm text-muted">Profil di bawah ini adalah ilustrasi untuk menunjukkan fitur, bukan pelaku yang dapat dipesan.</p>
+  </section>;
+}
 
 export default function Marketplace({ initialTab = "budaya" }: { initialTab?: "budaya" | "vendor" }) {
   const { route, navigate, compare, toggleCompare, setAuthMode } = useApp();
@@ -179,6 +198,7 @@ export default function Marketplace({ initialTab = "budaya" }: { initialTab?: "b
         </div>
       </section>
 
+      {liveEnabled && initialTab === "budaya" && <RegisteredListings />}
       <section className="mx-auto max-w-[1240px] px-4 py-6 sm:px-6 sm:py-8">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 rounded-xl border border-line bg-white p-1">

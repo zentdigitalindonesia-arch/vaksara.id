@@ -1,3 +1,4 @@
+import { liveBoot } from "@/LiveContext";
 import { createContext, useContext, useState, type ReactNode } from "react";
 
 export const EVENT_KEY = "vaksara-event-plan-v1";
@@ -22,7 +23,7 @@ export function planError(plan: EventPlan): string {
 function load(): { plan: EventPlan; warning: string } {
   try {
     const raw = localStorage.getItem(EVENT_KEY);
-    if (!raw) return { plan: demoPlan(), warning: "" };
+    if (!raw) return { plan: liveBoot() ? blankPlan() : demoPlan(), warning: "" };
     const p = JSON.parse(raw);
     if (p?.schema !== 1 || typeof p.name !== "string" || typeof p.date !== "string" || typeof p.location !== "string" || typeof p.budget !== "string" || !Array.isArray(p.needs) || !p.needs.every((id: unknown) => needs.some(n => n.id === id)) || ![0, 1, 2].includes(p.step) || typeof p.complete !== "boolean" || ((p.complete || p.step > 0) && planError(p))) throw new Error();
     return { plan: p, warning: "" };
