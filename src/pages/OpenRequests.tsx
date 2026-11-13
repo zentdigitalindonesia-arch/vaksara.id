@@ -22,7 +22,7 @@ function RequestFacts({ r }: { r: OpenRequest }) {
 
 export function CoupleOpenRequests() {
   const { openRequests, addOpenRequest, chooseOpenRequest, navigate, toast } = useApp();
-  const { flow, dispatch } = useCooperation();
+  const { flow, dispatch, live, loading } = useCooperation();
   const { plan } = useEventPlan();
   const mine = openRequests.filter(r => r.mine);
   const [open, setOpen] = useState(mine.length === 0);
@@ -38,7 +38,8 @@ export function CoupleOpenRequests() {
   const choose = (r: OpenRequest, vendor: string) => {
     const id = `or-case-${Date.now().toString(36)}`;
     const request = `${r.title}. ${r.detail} (dari permintaan terbuka)`;
-    if (!dispatch({ type: "lead", actor: "couple", id, data: { vendor, date: r.date, request } })) return;
+    if (live && loading) { toast("Data masih dimuat dari server. Tunggu sebentar lalu pilih lagi.", "info"); return; }
+    if (!dispatch({ type: "lead", actor: "couple", id, data: { vendor, date: r.date, request } })) { if (live) toast("Pelaku belum dapat dipilih. Muat ulang halaman lalu coba lagi.", "error"); return; }
     if (!dispatch({ type: "submit", actor: "couple", caseId: id, data: {} })) return;
     chooseOpenRequest(r.id, vendor, id);
     toast(`${vendor} dipilih. Permintaan resmi terkirim; lanjutkan di Kerja sama.`, "success", "Pelaku dipilih");
@@ -63,7 +64,7 @@ export function CoupleOpenRequests() {
       <div className="flex flex-wrap items-start justify-between gap-2"><div className="min-w-0"><Badge tone="sand">{r.category}</Badge><h2 className="mt-2 font-display text-xl text-ink">{r.title}</h2><RequestFacts r={r} /></div><Badge tone={r.status === "open" ? "green" : "neutral"} dot>{r.status === "open" ? "Terbuka" : `Dipilih: ${r.chosen}`}</Badge></div>
       <p className="mt-3 text-sm text-ink-soft">{r.detail}</p>
       <h3 className="mt-4 text-[15px] font-bold text-ink">{r.responses.length ? `${r.responses.length} pelaku mengajukan minat` : "Belum ada pelaku yang mengajukan minat"}</h3>
-      {r.responses.length === 0 && <p className="mt-1 text-sm text-muted">Coba beralih ke peran Pelaku (menu samping) lalu buka "Peluang" untuk melihat sisi pelaku budaya.</p>}
+      {r.responses.length === 0 && !live && <p className="mt-1 text-sm text-muted">Coba beralih ke peran Pelaku (menu samping) lalu buka "Peluang" untuk melihat sisi pelaku budaya.</p>}
       <ul className="mt-2 space-y-2">{r.responses.map(x => {
         const p = practitioners.find(pp => pp.name === x.vendor); return <li key={x.id} className="flex flex-col gap-3 rounded-2xl bg-cream p-3 sm:flex-row sm:items-center">
           {p && <img src={p.cover} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />}
@@ -77,8 +78,10 @@ export function CoupleOpenRequests() {
 
 export function VendorOpportunities() {
   const { openRequests, respondOpenRequest, toast } = useApp();
-  const { flow } = useCooperation();
+  const { flow, live } = useCooperation();
+  const { navigate } = useApp();
   const me = flow.accounts.vendor?.name ?? practitioners[0].name;
+  const reviewed = Object.values(flow.vendorReview).every(Boolean);
   const myCategory = practitioners.find(p => p.name === me)?.category ?? "";
   const [filter, setFilter] = useState("Semua");
   const [drafts, setDrafts] = useState<Record<string, { note: string; price: string; open: boolean; error: string }>>({});
@@ -92,6 +95,10 @@ export function VendorOpportunities() {
     set(r.id, { open: false, error: "" });
     toast("Minat terkirim. Keluarga akan melihat pesan dan perkiraan harga Anda.", "success", "Terkirim");
   };
+  if (live && (!flow.accounts.vendor || !reviewed)) return <>
+    <PageHeader title="Peluang: permintaan terbuka" description="Kebutuhan yang dipasang keluarga akan tampil di sini." />
+    <Card className="p-6"><h2 className="font-display text-xl">{flow.accounts.vendor ? "Profil Anda sedang ditinjau" : "Lengkapi profil layanan Anda dulu"}</h2><p className="mt-2 text-sm text-muted">{flow.accounts.vendor ? "Peninjau VAKSARA memeriksa identitas, konteks budaya, dan persetujuan publikasi. Setelah disetujui, permintaan terbuka dari keluarga muncul di halaman ini." : "Isi nama usaha atau sanggar, kategori layanan, wilayah, dan kontak. Setelah ditinjau, profil Anda tampil di direktori dan Anda dapat menanggapi permintaan keluarga."}</p><Button className="mt-4" onClick={() => navigate("vendor/profil")}>{flow.accounts.vendor ? "Lihat profil layanan" : "Isi profil layanan"}</Button></Card>
+  </>;
   return <>
     <PageHeader title="Peluang: permintaan terbuka" description={`Kebutuhan yang dipasang keluarga. Ajukan minat dan perkiraan harga; bila keluarga memilih Anda, permintaan resmi masuk ke Kerja sama. Masuk sebagai: ${me}.`} />
     <TwoWayNote actor="vendor" />

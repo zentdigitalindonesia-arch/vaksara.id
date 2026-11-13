@@ -18,8 +18,11 @@ import {
   Textarea,
   UploadBox
 } from "@/components/ui";
-import { formatIDR, practitioners, rundown as seedRundown, taskStatus, type TaskStatus } from "@/data";
-import { useApp } from "@/store";
+import { formatIDR, practitioners, taskStatus, type TaskStatus } from "@/data";
+import { liveText } from "@/utils/live-text";
+import { useEventPlan } from "@/EventPlanContext";
+import { useCooperation } from "@/CooperationContext";
+import { useApp, type RundownItem } from "@/store";
 import { cn } from "@/utils/cn";
 import {
   AlertTriangle,
@@ -52,7 +55,7 @@ import {
   Wallet
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import EventCalendar, { toIso, useCalendarEvents } from "@/components/EventCalendar";
+import EventCalendar, { toIso, todayIso, useCalendarEvents } from "@/components/EventCalendar";
 
 const budgetIcons: Record<string, React.ReactNode> = {
   sparkles: <Sparkles className="h-3.5 w-3.5" />,
@@ -91,7 +94,9 @@ export default function PlannerSubpage({ page }: { page: "anggaran" | "vendor" |
 /* ------------------------------- BUDGET ------------------------------- */
 function BudgetPage() {
   const { expenses, recordExpense, toast } = useApp();
-  const totals = useMemo(() => computeBudget(expenses), [expenses]);
+  const { plan: budgetPlan } = useEventPlan();
+  const totals = useMemo(() => computeBudget(expenses, budgetPlan.budget), [expenses, budgetPlan.budget]);
+  const pct = (a: number, b: number) => (b > 0 ? (a / b) * 100 : 0);
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState(budgetCategoryOptions[0]);
   const [label, setLabel] = useState("");
@@ -105,7 +110,7 @@ function BudgetPage() {
     const value = /^(?:\d+|\d{1,3}(?:\.\d{3})+)$/.test(normalized) ? Number(normalized.replace(/\./g, "")) : NaN;
     if (!label.trim()) return setError("Isi keterangan pengeluaran.");
     if (!Number.isSafeInteger(value) || value < 10000) return setError("Nominal minimal Rp10.000.");
-    if (value > totals.remaining) return setError(`Nominal melebihi sisa anggaran ${formatIDR(totals.remaining)}. Tinjau kembali rencana Anda.`);
+    if (totals.planned > 0 && value > totals.remaining) return setError(`Nominal melebihi sisa anggaran ${formatIDR(totals.remaining)}. Tinjau kembali rencana Anda.`);
     recordExpense({ category, label, amount: value, date });
     setError("");
     setSaved(true);
@@ -118,7 +123,7 @@ function BudgetPage() {
     <>
       <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         <StatCard label="Total anggaran" value={formatIDR(totals.planned)} helper="Rencana yang disepakati" icon={<Wallet className="h-3.5 w-3.5" />} />
-        <StatCard label="Komitmen vendor" value={formatIDR(totals.committed)} helper={`${Math.round((totals.committed / totals.planned) * 100)}% dari rencana`} icon={<FileSignature className="h-3.5 w-3.5" />} tone="sand" progress={(totals.committed / totals.planned) * 100} />
+        <StatCard label="Komitmen vendor" value={formatIDR(totals.committed)} helper={totals.planned > 0 ? `${Math.round(pct(totals.committed, totals.planned))}% dari rencana` : "Isi anggaran di rencana acara"} icon={<FileSignature className="h-3.5 w-3.5" />} tone="sand" progress={pct(totals.committed, totals.planned)} />
         <StatCard label="Sudah dibayar" value={formatIDR(totals.paid)} helper={`${expenses.length} pengeluaran tambahan`} icon={<CreditCard className="h-3.5 w-3.5" />} tone="green" progress={totals.percent} />
         <StatCard label="Sisa anggaran" value={formatIDR(totals.remaining)} helper="Belum terpakai" icon={<Sparkles className="h-3.5 w-3.5" />} tone="blue" progress={100 - totals.percent} />
       </div>
@@ -126,7 +131,7 @@ function BudgetPage() {
       <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_270px]">
         <Card className="overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3">
-            <div><h3 className="text-[15px] font-bold text-ink">Rincian anggaran</h3><p className="mt-0.5 text-[13px] text-muted">Semua nilai dalam Rupiah. Data prototipe.</p></div>
+            <div><h3 className="text-[15px] font-bold text-ink">Rincian anggaran</h3><p className="mt-0.5 text-[13px] text-muted">{liveText ? "Semua nilai dalam Rupiah, dari anggaran rencana acara dan pengeluaran yang Anda catat." : "Semua nilai dalam Rupiah. Data prototipe."}</p></div>
             <div className="flex gap-1.5">
               <Button size="sm" variant="secondary" onClick={() => toast("Laporan anggaran akan diunduh sebagai CSV pada implementasi produksi.", "info", "Unduhan prototipe")} leading={<Download className="h-3 w-3" />}>Ekspor</Button>
               <Button size="sm" onClick={() => { setOpen(true); setSaved(false); setError(""); }} leading={<Plus className="h-3 w-3" />}>Catat pengeluaran</Button>
@@ -160,8 +165,8 @@ function BudgetPage() {
                     <td className="px-2 py-2.5 text-right font-semibold text-ink">{formatIDR(b.paid, true)}</td>
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2">
-                        <Progress value={(b.paid / b.planned) * 100} tone={b.paid / b.planned > 0.9 ? "warn" : "green"} height="h-1" className="w-20" />
-                        <span className="text-[12px] font-semibold text-muted">{Math.round((b.paid / b.planned) * 100)}%</span>
+                        <Progress value={pct(b.paid, b.planned)} tone={pct(b.paid, b.planned) > 90 ? "warn" : "green"} height="h-1" className="w-20" />
+                        <span className="text-[12px] font-semibold text-muted">{b.planned > 0 ? `${Math.round(pct(b.paid, b.planned))}%` : "–"}</span>
                       </div>
                     </td>
                   </tr>
@@ -183,7 +188,7 @@ function BudgetPage() {
         <div className="space-y-3">
           <Card className="p-4">
             <h3 className="text-[15px] font-bold text-ink">Komposisi anggaran</h3>
-            <div className="mx-auto my-3 flex h-[130px] w-[130px] items-center justify-center rounded-full" style={{ background: `conic-gradient(#16332E 0 25%, #C1A06E 25% 47%, #7A9688 47% 66%, #D8CBB1 66% 82%, #A9BEB1 82% 100%)` }}>
+            <div className="mx-auto my-3 flex h-[130px] w-[130px] items-center justify-center rounded-full" style={{ background: liveText ? `conic-gradient(#16332E 0 ${donut}%, #EFEBE3 ${donut}% 100%)` : `conic-gradient(#16332E 0 25%, #C1A06E 25% 47%, #7A9688 47% 66%, #D8CBB1 66% 82%, #A9BEB1 82% 100%)` }}>
               <div className="flex h-[94px] w-[94px] flex-col items-center justify-center rounded-full bg-white">
                 <span className="text-[12px] text-muted">Terpakai</span>
                 <span className="text-[16px] font-bold leading-tight text-ink">{donut}%</span>
@@ -192,12 +197,12 @@ function BudgetPage() {
             </div>
             <div className="space-y-1">
               {[["Prosesi & adat", "#16332E"], ["Katering", "#C1A06E"], ["Venue & dekorasi", "#7A9688"], ["Busana & rias", "#D8CBB1"], ["Lainnya", "#A9BEB1"]].map(([l, c]) => (
-                <div key={l} className="flex items-center justify-between text-[13px]"><span className="flex items-center gap-1.5 text-muted"><span className="h-1.5 w-1.5 rounded-full" style={{ background: c }} />{l}</span><span className="font-semibold text-ink-soft">{formatIDR(budgetCategoryOptions.includes(l) ? totals.rows.find((r) => r.category === l)!.planned : 0, true)}</span></div>
+                <div key={l} className="flex items-center justify-between text-[13px]"><span className="flex items-center gap-1.5 text-muted"><span className="h-1.5 w-1.5 rounded-full" style={{ background: c }} />{l}</span><span className="font-semibold text-ink-soft">{formatIDR(budgetCategoryOptions.includes(l) ? (liveText ? totals.rows.find((r) => r.category === l)?.paid : totals.rows.find((r) => r.category === l)?.planned) ?? 0 : 0, true)}</span></div>
               ))}
             </div>
           </Card>
           <Alert tone="warn" title="Dana belum dialokasikan">Sisa {formatIDR(totals.remaining, true)} mencakup termin yang belum jatuh tempo. Jangan gunakan seluruhnya untuk pengeluaran baru.</Alert>
-          <Alert tone="info" title="Tidak ada escrow">VAKSARA tidak menahan dana Anda. Semua catatan pembayaran adalah dokumentasi prototipe.</Alert>
+          <Alert tone="info" title="Tidak ada escrow">{liveText ? "VAKSARA tidak menahan dana Anda. Catatan pembayaran adalah dokumentasi untuk keluarga dan pelaku." : "VAKSARA tidak menahan dana Anda. Semua catatan pembayaran adalah dokumentasi prototipe."}</Alert>
         </div>
       </div>
 
@@ -327,7 +332,7 @@ function SchedulePage() {
   return (
     <>
       <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
-        <StatCard label="Checklist selesai" value={`${doneCount}/${all.length}`} helper={`${Math.round((doneCount / all.length) * 100)}% persiapan`} icon={<CheckCircle2 className="h-3.5 w-3.5" />} tone="green" progress={(doneCount / all.length) * 100} />
+        <StatCard label="Checklist selesai" value={`${doneCount}/${all.length}`} helper={`${all.length ? Math.round((doneCount / all.length) * 100) : 0}% persiapan`} icon={<CheckCircle2 className="h-3.5 w-3.5" />} tone="green" progress={all.length ? (doneCount / all.length) * 100 : 0} />
         <StatCard label="Tugas terbuka" value={all.length - doneCount} helper={`${all.filter((t) => !t.done && t.priority === "Tinggi").length} prioritas tinggi`} icon={<ClipboardList className="h-3.5 w-3.5" />} tone="sand" />
         <StatCard label="Jadwal pelaku budaya" value={calendarEvents.filter((e) => e.kind === "layanan").length} helper="Dari penawaran & perjanjian" icon={<CalendarDays className="h-3.5 w-3.5" />} tone="blue" />
         <StatCard label="Rangkaian acara" value={calendarEvents.filter((e) => e.kind === "acara").length} helper="Kegiatan di rundown" icon={<Bell className="h-3.5 w-3.5" />} />
@@ -538,9 +543,12 @@ function GuestPage() {
   const [table, setTable] = useState("—");
   const [invitation, setInvitation] = useState("Belum dikirim");
 
-  const total = 140 + guests.reduce((s, g) => s + g.party, 0);
-  const hadir = guests.filter((g) => g.rsvp === "Hadir").reduce((s, g) => s + g.party, 0) + 85;
-  const menunggu = guests.filter((g) => g.rsvp === "Menunggu").reduce((s, g) => s + g.party, 0) + 9;
+  // Akun nyata: tanpa angka dasar contoh; semua dihitung dari daftar tamu.
+  const base = liveText ? { total: 0, hadir: 0, menunggu: 0, tidak: 0 } : { total: 140, hadir: 85, menunggu: 9, tidak: 12 };
+  const total = base.total + guests.reduce((s, g) => s + g.party, 0);
+  const hadir = guests.filter((g) => g.rsvp === "Hadir").reduce((s, g) => s + g.party, 0) + base.hadir;
+  const menunggu = guests.filter((g) => g.rsvp === "Menunggu").reduce((s, g) => s + g.party, 0) + base.menunggu;
+  const tidakHadir = guests.filter((g) => g.rsvp === "Tidak hadir").reduce((s, g) => s + g.party, 0) + base.tidak;
   const filtered = guests.filter((g) => (tab === "semua" ? true : g.rsvp === tab) && `${g.name} ${g.group} ${g.table}`.toLowerCase().includes(query.toLowerCase()));
 
   const submit = () => {
@@ -548,14 +556,14 @@ function GuestPage() {
     addGuest({ name, group, party: Number(party) || 1, rsvp, table, invitation });
     setOpen(false);
     setName("");
-    toast(`${name} ditambahkan ke daftar tamu (prototipe).`, "success", "Tamu baru");
+    toast(liveText ? `${name} ditambahkan ke daftar tamu.` : `${name} ditambahkan ke daftar tamu (prototipe).`, "success", "Tamu baru");
   };
 
   return (
     <>
       <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         <StatCard label="Total undangan" value={total} helper={`${guests.length} entri ditampilkan`} icon={<Users className="h-3.5 w-3.5" />} />
-        <StatCard label="Diprediksi hadir" value={hadir} helper={`${Math.round((hadir / total) * 100)}% dari undangan`} icon={<CheckCircle2 className="h-3.5 w-3.5" />} tone="green" progress={Math.round((hadir / total) * 100)} />
+        <StatCard label="Diprediksi hadir" value={hadir} helper={`${Math.round((total ? hadir / total : 0) * 100)}% dari undangan`} icon={<CheckCircle2 className="h-3.5 w-3.5" />} tone="green" progress={Math.round((total ? hadir / total : 0) * 100)} />
         <StatCard label="Menunggu RSVP" value={menunggu} helper="Kirim pengingat 7 hari lagi" icon={<Clock className="h-3.5 w-3.5" />} tone="sand" />
         <StatCard label="Kapasitas venue" value="300" helper={`${300 - hadir} kursi tersisa`} icon={<Building2 className="h-3.5 w-3.5" />} tone="blue" progress={Math.round((hadir / 300) * 100)} />
       </div>
@@ -563,7 +571,7 @@ function GuestPage() {
       <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_280px]">
         <Card className="overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3">
-            <div><h3 className="text-[15px] font-bold text-ink">Daftar tamu</h3><p className="mt-0.5 text-[13px] text-muted">RSVP dan undangan tersimpan pada sesi prototipe.</p></div>
+            <div><h3 className="text-[15px] font-bold text-ink">Daftar tamu</h3><p className="mt-0.5 text-[13px] text-muted">{liveText ? "RSVP dan undangan tersimpan di akun Anda." : "RSVP dan undangan tersimpan pada sesi prototipe."}</p></div>
             <div className="flex gap-1.5">
               <Button size="sm" variant="secondary" onClick={() => toast("Tautan undangan akan dibuat pada implementasi produksi.", "info", "Undangan prototipe")} leading={<Send className="h-3 w-3" />}>Kirim</Button>
               <Button size="sm" onClick={() => setOpen(true)} leading={<Plus className="h-3 w-3" />}>Tambah tamu</Button>
@@ -593,16 +601,16 @@ function GuestPage() {
             </table>
             {filtered.length === 0 && <div className="p-6"><EmptyState compact title="Tidak ada tamu pada filter ini" description="Coba saringan lain atau tambahkan tamu baru." /></div>}
           </div>
-          <div className="border-t border-line px-4 py-2 text-[12px] text-muted">Menampilkan {filtered.length} dari {guests.length} entri prototipe.</div>
+          <div className="border-t border-line px-4 py-2 text-[12px] text-muted">Menampilkan {filtered.length} dari {guests.length} {liveText ? "tamu" : "entri prototipe"}.</div>
         </Card>
 
         <div className="space-y-3">
           <Card className="p-4">
             <h3 className="text-[15px] font-bold text-ink">Ringkasan RSVP</h3>
-            <div className="relative mx-auto my-3 flex h-[112px] w-[112px] items-center justify-center rounded-full" style={{ background: `conic-gradient(#4C8068 0 ${Math.round((hadir / total) * 100)}%, #C08D3B ${Math.round((hadir / total) * 100)}% ${Math.round(((hadir + menunggu) / total) * 100)}%, #E7E1D5 ${Math.round(((hadir + menunggu) / total) * 100)}% 100%)` }}>
+            <div className="relative mx-auto my-3 flex h-[112px] w-[112px] items-center justify-center rounded-full" style={{ background: `conic-gradient(#4C8068 0 ${Math.round((total ? hadir / total : 0) * 100)}%, #C08D3B ${Math.round((total ? hadir / total : 0) * 100)}% ${Math.round((total ? (hadir + menunggu) / total : 0) * 100)}%, #E7E1D5 ${Math.round((total ? (hadir + menunggu) / total : 0) * 100)}% 100%)` }}>
               <div className="flex h-[78px] w-[78px] flex-col items-center justify-center rounded-full bg-white"><span className="text-[16px] font-bold text-ink">{total}</span><span className="text-[12px] text-muted">undangan</span></div>
             </div>
-            {[["Hadir", hadir, "bg-[#4C8068]"], ["Menunggu", menunggu, "bg-[#C08D3B]"], ["Tidak hadir", 12, "bg-[#E7E1D5]"]].map(([l, v, c]) => (
+            {[["Hadir", hadir, "bg-[#4C8068]"], ["Menunggu", menunggu, "bg-[#C08D3B]"], ["Tidak hadir", tidakHadir, "bg-[#E7E1D5]"]].map(([l, v, c]) => (
               <div key={l as string} className="flex items-center justify-between py-0.5 text-[13px]"><span className="flex items-center gap-1.5 text-muted"><span className={cn("h-1.5 w-1.5 rounded-full", c as string)} />{l as string}</span><span className="font-semibold text-ink">{v as number}</span></div>
             ))}
           </Card>
@@ -610,13 +618,13 @@ function GuestPage() {
           <Card className="p-4">
             <h3 className="text-[14px] font-bold text-ink">Meja & kapasitas</h3>
             <div className="mt-2 space-y-2">
-              {[["Meja A", 24, 30], ["Meja B", 18, 20], ["Meja C", 16, 20]].map(([l, v, cap]) => <div key={l as string}><div className="flex justify-between text-[13px]"><span className="text-muted">{l as string}</span><span className="font-semibold text-ink">{v as number}/{cap as number}</span></div><Progress value={((v as number) / (cap as number)) * 100} tone="sand" height="h-1" className="mt-1" /></div>)}
+              {(liveText ? Object.entries(guests.reduce<Record<string, number>>((m, g) => { const t = g.table?.trim(); if (t) m[t] = (m[t] ?? 0) + g.party; return m; }, {})).map(([t, n]) => [`Meja ${t}`, n, Math.max(n, 10)]) : [["Meja A", 24, 30], ["Meja B", 18, 20], ["Meja C", 16, 20]]).map(([l, v, cap]) => <div key={l as string}><div className="flex justify-between text-[13px]"><span className="text-muted">{l as string}</span><span className="font-semibold text-ink">{v as number}/{cap as number}</span></div><Progress value={((v as number) / (cap as number)) * 100} tone="sand" height="h-1" className="mt-1" /></div>)}
             </div>
           </Card>
         </div>
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Tambah tamu" description="Data tamu hanya digunakan untuk perencanaan pada prototipe ini." size="md" footer={<><Button size="sm" variant="secondary" onClick={() => setOpen(false)}>Batal</Button><Button size="sm" onClick={submit}>Simpan tamu</Button></>}>
+      <Modal open={open} onClose={() => setOpen(false)} title="Tambah tamu" description={liveText ? "Data tamu hanya digunakan untuk perencanaan." : "Data tamu hanya digunakan untuk perencanaan pada prototipe ini."} size="md" footer={<><Button size="sm" variant="secondary" onClick={() => setOpen(false)}>Batal</Button><Button size="sm" onClick={submit}>Simpan tamu</Button></>}>
         <div className="space-y-3">
           <Field label="Nama tamu / keluarga" required><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Contoh: Keluarga Andi Baso" /></Field>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -629,17 +637,18 @@ function GuestPage() {
           </div>
           <Field label="Status undangan"><Select value={invitation} onChange={(e) => setInvitation(e.target.value)}><option>Belum dikirim</option><option>Terkirim</option><option>Dibuka</option></Select></Field>
         </div>
-      </Modal>
+      </Modal >
     </>
   );
 }
 
 /* ------------------------------- RUNDOWN ------------------------------- */
 function RundownPage() {
-  const { toast, navigate } = useApp();
-  const [items, setItems] = useState(seedRundown);
-  const [eventDate, setEventDate] = useState("2027-06-12");
-  const [eventLocation, setEventLocation] = useState("Lokasi hari utama (demo)");
+  const { toast, navigate, rundownItems: items, setRundownItems: setItems } = useApp();
+  const { plan } = useEventPlan();
+  const { flow } = useCooperation();
+  const [eventDate, setEventDate] = useState(liveText ? plan.date || todayIso() : "2027-06-12");
+  const [eventLocation, setEventLocation] = useState(liveText ? plan.location : "Lokasi hari utama (demo)");
   const [dayFilter, setDayFilter] = useState("semua");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formError, setFormError] = useState("");
@@ -648,10 +657,10 @@ function RundownPage() {
   const dateLabel = (date: string) => new Date(date + "T12:00:00+08:00").toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Makassar" });
   const openNew = () => {
     setEditingId(null); setTitle(""); setTime("16.00");
-    setEventDate(dayFilter === "semua" ? dates[0] ?? "2027-06-12" : dayFilter);
+    setEventDate(dayFilter === "semua" ? dates[0] ?? (plan.date || (liveText ? todayIso() : "2027-06-12")) : dayFilter);
     setEventLocation(""); setFormError(""); setAddOpen(true);
   };
-  const edit = (item: (typeof seedRundown)[number]) => {
+  const edit = (item: RundownItem) => {
     setEditingId(item.id); setTitle(item.title); setTime(item.time);
     setEventDate(item.date); setEventLocation(item.location); setOwner(item.owner);
     setType(item.type); setFormError(""); setAddOpen(true);
@@ -662,7 +671,7 @@ function RundownPage() {
   const [title, setTitle] = useState("");
   const [owner, setOwner] = useState("Koordinator keluarga");
   const [type, setType] = useState("Prosesi");
-  const [vendors] = useState(["Sanggar Demo Batara", "Dapur Cita Nusantara", "Lensa Pesisir Studio"]);
+  const [vendors] = useState(() => liveText ? [...new Set(flow.cases.filter(c => !["cancelled", "declined", "draft"].includes(c.phase)).map(c => c.vendor))] : ["Sanggar Demo Batara", "Dapur Cita Nusantara", "Lensa Pesisir Studio"]);
   const [shareWith, setShareWith] = useState<string[]>(vendors);
 
   const add = () => {
@@ -677,7 +686,7 @@ function RundownPage() {
     const item = { id: editingId ?? crypto.randomUUID(), date: eventDate, location: eventLocation.trim(), time, title: title.trim(), owner, type };
     setItems((prev) => (editingId ? prev.map((old) => old.id === editingId ? item : old) : [...prev, item]));
     setDayFilter("semua"); setAddOpen(false); setTitle("");
-    toast("Mata acara disimpan sesuai tanggal dan waktu pada sesi demo ini.", "success", "Rundown diperbarui");
+    toast(liveText ? "Mata acara tersimpan di rundown akun Anda." : "Mata acara disimpan sesuai tanggal dan waktu pada sesi demo ini.", "success", "Rundown diperbarui");
   };
 
   return (
@@ -701,7 +710,7 @@ function RundownPage() {
           </div>
           <div className="border-b border-line p-4">
             <Field label="Tampilkan hari"><Select aria-label="Filter hari rundown" value={dayFilter} onChange={(e) => setDayFilter(e.target.value)}><option value="semua">Semua hari</option>{dates.map((date) => <option key={date} value={date}>{dateLabel(date)}</option>)}</Select></Field>
-            <p className="mt-2 text-[14px] text-muted">Contoh demo, bukan urutan adat baku. Rangkaian disepakati bersama keluarga dan praktisi; setiap hari dapat memiliki lokasi berbeda.</p>
+            <p className="mt-2 text-[14px] text-muted">{liveText ? (items.length ? "Rangkaian disepakati bersama keluarga dan praktisi; setiap hari dapat memiliki lokasi berbeda." : "Belum ada mata acara. Klik Tambah untuk menyusun rangkaian acara pertama, misalnya mappacci atau akad nikah.") : "Contoh demo, bukan urutan adat baku. Rangkaian disepakati bersama keluarga dan praktisi; setiap hari dapat memiliki lokasi berbeda."}</p>
           </div>
           {visibleDates.map((date) => (
             <section key={date} data-rundown-day={date}>
@@ -725,7 +734,7 @@ function RundownPage() {
               {dates.map((date) => <div key={date} className="rounded-lg border border-line p-2.5"><div className="text-[14px] font-semibold text-ink">{dateLabel(date)}</div><div className="text-[13px] text-muted">{items.filter((item) => item.date === date).length} kegiatan · WITA</div></div>)}
             </div>
           </Card>
-          <Alert tone="warn" title="Versi rundown">Perubahan hanya berlaku selama sesi demo ini. Pembagian dan pengingat belum mengirim notifikasi nyata.</Alert>
+          <Alert tone={liveText ? "info" : "warn"} title="Versi rundown">{liveText ? "Rundown tersimpan di akun Anda dan dapat dibuka dari perangkat lain. Pembagian ke vendor dan pengingat otomatis menyusul." : "Perubahan hanya berlaku selama sesi demo ini. Pembagian dan pengingat belum mengirim notifikasi nyata."}</Alert>
           <Button variant="secondary" full size="sm" onClick={() => navigate("bantuan")} leading={<Bell className="h-3.5 w-3.5" />}>Atur pengingat rundown</Button>
         </div>
       </div>

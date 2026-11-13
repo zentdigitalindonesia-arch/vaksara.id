@@ -1,3 +1,4 @@
+import { liveBoot } from "@/LiveContext";
 import { createContext, useContext, useState, type ReactNode } from "react";
 
 export const EVENT_KEY = "vaksara-event-plan-v1";
@@ -8,7 +9,7 @@ export const needs = [
   { id: "katering", label: "Katering", query: "katering", route: "layanan" },
   { id: "dokumentasi", label: "Dokumentasi", query: "dokumentasi", route: "layanan" },
 ] as const;
-export type EventPlan = { schema: 1; name: string; date: string; location: string; budget: string; needs: string[]; step: number; complete: boolean; demo?: boolean };
+export type EventPlan = { schema: 1; name: string; date: string; location: string; budget: string; needs: string[]; otherNeeds?: string; step: number; complete: boolean; demo?: boolean };
 export const blankPlan = (): EventPlan => ({ schema: 1, name: "", date: "", location: "", budget: "", needs: [], step: 0, complete: false });
 // Kunjungan pertama langsung berisi acara contoh agar semua bagian demo terisi dan mudah dipahami.
 export const demoPlan = (): EventPlan => ({ schema: 1, name: "Pernikahan Nurul & Fikri", date: "2027-06-12", location: "Makassar", budget: "127500000", needs: ["prosesi", "busana", "musik", "katering", "dokumentasi"], step: 2, complete: true, demo: true });
@@ -22,9 +23,9 @@ export function planError(plan: EventPlan): string {
 function load(): { plan: EventPlan; warning: string } {
   try {
     const raw = localStorage.getItem(EVENT_KEY);
-    if (!raw) return { plan: demoPlan(), warning: "" };
+    if (!raw) return { plan: liveBoot() ? blankPlan() : demoPlan(), warning: "" };
     const p = JSON.parse(raw);
-    if (p?.schema !== 1 || typeof p.name !== "string" || typeof p.date !== "string" || typeof p.location !== "string" || typeof p.budget !== "string" || !Array.isArray(p.needs) || !p.needs.every((id: unknown) => needs.some(n => n.id === id)) || ![0, 1, 2].includes(p.step) || typeof p.complete !== "boolean" || ((p.complete || p.step > 0) && planError(p))) throw new Error();
+    if (p?.schema !== 1 || typeof p.name !== "string" || typeof p.date !== "string" || typeof p.location !== "string" || typeof p.budget !== "string" || !Array.isArray(p.needs) || (p.otherNeeds !== undefined && (typeof p.otherNeeds !== "string" || p.otherNeeds.length > 500)) || !p.needs.every((id: unknown) => needs.some(n => n.id === id)) || ![0, 1, 2].includes(p.step) || typeof p.complete !== "boolean" || ((p.complete || p.step > 0) && planError(p))) throw new Error();
     return { plan: p, warning: "" };
   } catch { return { plan: blankPlan(), warning: "Rencana tersimpan tidak dapat dibaca. Data lama belum diubah; simpan ulang hanya jika ingin menggantinya." }; }
 }

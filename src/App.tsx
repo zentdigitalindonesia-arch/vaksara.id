@@ -12,6 +12,7 @@ import { CooperationProvider } from "@/CooperationContext";
 import CooperationPage from "@/pages/CooperationPage";
 import ContactVerification, { ContactDemoProvider } from "@/pages/ContactVerification";
 import { practitioners } from "@/data";
+import { liveEnabled } from "@/utils/supabase";
 import { Button, ToastStack } from "@/components/ui";
 import { AppLayout } from "@/layouts/AppLayout";
 import { PublicLayout } from "@/layouts/PublicLayout";
@@ -26,6 +27,8 @@ import PractitionerPage from "@/pages/Practitioner";
 import VendorWorkspace from "@/pages/Vendor";
 import { AppProvider, roleForRoute, useApp } from "@/store";
 import { useEffect } from "react";
+import { LiveProvider, useLive } from "@/LiveContext";
+import { LiveNotice, LiveScreening, LiveSignupPage, LiveVendorProfile, LiveVendorSearch } from "@/pages/LiveAccount";
 
 function NotFound() {
   const { navigate } = useApp();
@@ -40,8 +43,13 @@ function NotFound() {
 }
 
 function Router() {
-  const { route } = useApp();
+  const { route, navigate } = useApp();
   const { plan } = useEventPlan();
+  const { live, profile, ready } = useLive();
+  // Akun keluarga tetap di ruang kerja saat mencari pelaku budaya.
+  useEffect(() => {
+    if (live && ready && profile?.role === "couple" && /^jelajahi(\?|$)/.test(route)) navigate(route.replace(/^jelajahi/, "planner/pelaku"));
+  }, [live, ready, profile?.role, route, navigate]);
   const path = route.split("?")[0].replace(/\/+$/, "") || "beranda";
   const segments = path.split("/").filter(Boolean);
   const role = roleForRoute(path);
@@ -70,7 +78,19 @@ function Router() {
     "admin/overview": "overview", "admin/perjanjian": "agreements", "admin/pengaduan": "issues",
   };
   let content: React.ReactNode;
-  if (["akun/daftar", "vendor/daftar"].includes(path)) content = <Registration key={path} />;
+  // Akun nyata: halaman simulasi diganti alur sungguhan; peran dibatasi sesuai profil akun.
+  const liveBlock: React.ReactNode = !live || !ready ? null
+    : (path === "demo" || path === "akun/kontak" || path === "vendor/kontak") ? <LiveNotice title="Fitur khusus akun demo" text="Demo terpandu dan simulasi OTP hanya untuk akun demo. Akun VAKSARA Anda sudah terverifikasi lewat email." action={{ label: "Ke ruang saya", to: profile?.role === "vendor" ? "vendor/ringkasan" : "planner" }} />
+      : role === "admin" && !profile?.is_admin ? <LiveNotice title="Khusus peninjau VAKSARA" text="Halaman ini hanya untuk akun peninjau yang ditetapkan pengelola." action={{ label: "Kembali", to: profile?.role === "vendor" ? "vendor/ringkasan" : "planner" }} />
+        : role === "vendor" && profile?.role !== "vendor" && !profile?.is_admin ? <LiveNotice title="Khusus akun pelaku budaya" text="Akun Anda terdaftar sebagai keluarga. Halaman ini untuk pelaku budaya." action={{ label: "Ke ruang keluarga", to: "planner" }} />
+          : path === "vendor/profil" || path === "vendor/verifikasi" ? <LiveVendorProfile />
+            : path === "admin/screening" ? <LiveScreening />
+              : null;
+  if (liveBlock) content = liveBlock;
+  else if (path === "planner/pelaku") content = <LiveVendorSearch />;
+  else if (live && ["akun/daftar", "vendor/daftar"].includes(path)) content = <LiveNotice title="Anda sudah masuk" text="Akun VAKSARA Anda sudah aktif." action={{ label: "Ke ruang saya", to: profile?.role === "vendor" ? "vendor/profil" : "planner" }} />;
+  else if (liveEnabled && ["akun/daftar", "vendor/daftar"].includes(path)) content = <LiveSignupPage vendor={path === "vendor/daftar"} />;
+  else if (["akun/daftar", "vendor/daftar"].includes(path)) content = <Registration key={path} />;
   else if (path === "planner/mulai") content = <EventStart />;
   else if (path === "planner") content = <EventHome />;
   else if (["planner/rencana", "planner/planner"].includes(path)) content = <EventTools />;
@@ -114,9 +134,9 @@ function Router() {
 
 export default function App() {
   return (
-    <EventPlanProvider><ContactDemoProvider><CooperationProvider><AppProvider>
+    <LiveProvider><EventPlanProvider><ContactDemoProvider><CooperationProvider><AppProvider>
       <Router />
       <ToastStack />
-    </AppProvider></CooperationProvider></ContactDemoProvider></EventPlanProvider>
+    </AppProvider></CooperationProvider></ContactDemoProvider></EventPlanProvider></LiveProvider>
   );
 }

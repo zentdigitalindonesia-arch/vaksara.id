@@ -1,3 +1,4 @@
+import { liveBoot } from "@/LiveContext";
 import { createContext, useContext, useEffect, useState, type ReactNode, type SetStateAction } from "react";
 import { Alert, Badge, Button, Card, Field, Input, PageHeader } from "@/components/ui";
 import { useApp } from "@/store";
@@ -33,7 +34,8 @@ export function ContactDemoProvider({ children }: { children: ReactNode }) {
     setChallenges((prev) => ({ ...prev, [channel]: result.challenge }));
     return result.message;
   };
-  const demoReady = demoContactReady(challenges.email, contacts.email, "email", now) && demoContactReady(challenges.whatsapp, contacts.whatsapp, "whatsapp", now);
+  // Akun nyata sudah memverifikasi email lewat kode saat mendaftar, sehingga tidak perlu simulasi OTP.
+  const demoReady = liveBoot() || (demoContactReady(challenges.email, contacts.email, "email", now) && demoContactReady(challenges.whatsapp, contacts.whatsapp, "whatsapp", now));
   return <ContactContext.Provider value={{ contacts, challenges, update, issue, confirm, demoReady, reset: () => { setContacts({ email: "pengguna@example.com", whatsapp: "" }); setChallenges({ email: null, whatsapp: null }); } }}>{children}</ContactContext.Provider>;
 }
 export function useContactDemo() { const ctx = useContext(ContactContext); if (!ctx) throw new Error("ContactDemoProvider missing"); return ctx; }
