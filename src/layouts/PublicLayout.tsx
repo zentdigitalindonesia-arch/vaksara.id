@@ -2,7 +2,7 @@ import { Logo } from "@/components/brand";
 import { Alert, Button, Field, Input, Modal } from "@/components/ui";
 import { demoAccounts, demoLogin } from "@/utils/demo-login";
 import { liveEnabled } from "@/utils/supabase";
-import { useLive } from "@/LiveContext";
+import { startPlanTarget, useLive } from "@/LiveContext";
 import { LiveAuthForm } from "@/components/LiveAuth";
 import { useApp } from "@/store";
 import { cn } from "@/utils/cn";
@@ -21,6 +21,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
   const { route, navigate, setAuthMode, authMode } = useApp();
   const { live, profile } = useLive();
   const home = profile?.role === "vendor" ? "vendor/ringkasan" : "planner";
+  const startPlan = () => { if (live) navigate(home); else if (startPlanTarget() === "daftar") setAuthMode("daftar"); else navigate("planner"); };
   const [mobileOpen, setMobileOpen] = useState(false);
   const path = route.split("?")[0];
   return (
@@ -66,7 +67,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
             <Button variant="secondary" size="sm" className="whitespace-nowrap" onClick={() => navigate("demo")}>
               Coba demo
             </Button>
-            <Button size="sm" className="whitespace-nowrap" onClick={() => navigate("planner")} trailing={<ArrowRight className="h-3.5 w-3.5" />}>
+            <Button size="sm" className="whitespace-nowrap" onClick={startPlan} trailing={<ArrowRight className="h-3.5 w-3.5" />}>
               Mulai rencana
             </Button>
           </div>
@@ -74,7 +75,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
             <Button size="sm" variant="ghost" className="hidden sm:inline-flex" onClick={() => (live ? navigate(home) : setAuthMode("masuk"))}>
               {live ? "Ruang saya" : "Masuk"}
             </Button>
-            <Button size="sm" onClick={() => navigate("planner")}>
+            <Button size="sm" onClick={startPlan}>
               Mulai
             </Button>
             <button
@@ -235,9 +236,9 @@ export function AuthModal({ open, mode, onClose }: { open: boolean; mode: "masuk
   const { navigate } = useApp();
   const [tab, setTab] = useState<"akun" | "demo">("akun");
   const go = (route: string) => { onClose(); navigate(route); };
-  if (liveEnabled) return <Modal open={open} onClose={onClose} title={mode === "daftar" ? "Daftar ke VAKSARA" : "Masuk ke VAKSARA"} description={tab === "akun" ? "Akun Anda tersimpan aman di server. Data dapat dibuka dari HP maupun komputer." : "Akun demo berisi data contoh dan hanya tersimpan di browser ini."}>
-    <div role="tablist" aria-label="Jenis akun" className="mb-4 grid grid-cols-2 gap-1 rounded-full bg-cream p-1">{([["akun", "Akun VAKSARA"], ["demo", "Coba akun demo"]] as const).map(([v, l]) => <button key={v} type="button" role="tab" aria-selected={tab === v} onClick={() => setTab(v)} className={cn("min-h-10 rounded-full text-[13px] font-semibold", tab === v ? "bg-ink text-cream" : "text-ink-soft")}>{l}</button>)}</div>
-    {tab === "akun" ? <LiveAuthForm key={mode} initial={mode} /> : <DemoLogin onDone={go} />}
+  if (liveEnabled) return <Modal open={open} onClose={onClose} title={mode === "daftar" ? "Daftar ke VAKSARA" : "Masuk ke VAKSARA"} description={tab === "akun" || mode === "daftar" ? "Akun Anda tersimpan aman di server. Data dapat dibuka dari HP maupun komputer." : "Akun demo berisi data contoh dan hanya tersimpan di browser ini."}>
+    {mode === "masuk" && <div role="tablist" aria-label="Jenis akun" className="mb-4 grid grid-cols-2 gap-1 rounded-full bg-cream p-1">{([["akun", "Akun VAKSARA"], ["demo", "Coba akun demo"]] as const).map(([v, l]) => <button key={v} type="button" role="tab" aria-selected={tab === v} onClick={() => setTab(v)} className={cn("min-h-10 rounded-full text-[13px] font-semibold", tab === v ? "bg-ink text-cream" : "text-ink-soft")}>{l}</button>)}</div>}
+    {tab === "akun" || mode === "daftar" ? <LiveAuthForm key={mode} initial={mode} /> : <DemoLogin onDone={go} />}
   </Modal>;
   if (mode === "masuk") return <Modal open={open} onClose={onClose} title="Masuk ke VAKSARA" description="Mode demo: gunakan akun contoh di bawah. Tidak ada data pribadi yang dikirim ke server.">
     <DemoLogin onDone={go} />

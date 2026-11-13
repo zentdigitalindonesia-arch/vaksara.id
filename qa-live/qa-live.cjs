@@ -34,6 +34,19 @@ let n = 0; const ok = m => { n++; console.log('PASS', m); };
     await p.waitForLoadState('networkidle'); await p.waitForTimeout(800);
   }
   try {
+    // ---------- Tamu menekan Mulai rencana ----------
+    const g = await device(1366);
+    await g.goto(base + 'beranda'); await g.waitForLoadState('networkidle');
+    await g.getByRole('button', { name: 'Mulai rencana' }).first().click();
+    await g.getByRole('form', { name: 'Daftar akun VAKSARA' }).waitFor();
+    if (await g.getByRole('tab', { name: 'Coba akun demo' }).count()) throw new Error('tab demo masih tampil di pendaftaran');
+    if (/planner/.test(g.url())) throw new Error('Mulai rencana membuka ruang demo');
+    ok('tamu menekan Mulai rencana: form daftar akun tanpa tab demo');
+    await g.keyboard.press('Escape');
+    await g.getByRole('button', { name: /^Masuk$/ }).first().click();
+    await g.getByRole('tab', { name: 'Coba akun demo' }).waitFor();
+    ok('form Masuk tetap menyediakan akun demo untuk juri');
+
     // ---------- Pelaku budaya ----------
     const v = await device();
     await signup(v, { role: 'vendor', name: 'Daeng Uji', email: 'pelaku@uji.id', phone: '0812 1111 2222' });

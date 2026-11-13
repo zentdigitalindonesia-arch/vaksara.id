@@ -3,6 +3,7 @@ import { PractitionerCard } from "@/components/PractitionerCard";
 import { Badge, Button, Card, LinkArrow, Progress } from "@/components/ui";
 import { categories, formatIDR, images, practitioners } from "@/data";
 import { useApp } from "@/store";
+import { startPlanTarget, useLive } from "@/LiveContext";
 import { cn } from "@/utils/cn";
 import {
   ArrowRight,
@@ -40,6 +41,9 @@ const categoryIcons: Record<string, React.ReactNode> = {
 
 export default function Landing() {
   const { navigate, setAuthMode } = useApp();
+  const { live, profile } = useLive();
+  // Saat akun nyata aktif, tamu yang menekan "Mulai" diarahkan ke pendaftaran; demo tetap lewat "Coba demo".
+  const startPlan = () => { if (live) navigate(profile?.role === "vendor" ? "vendor/ringkasan" : "planner"); else if (startPlanTarget() === "daftar") setAuthMode("daftar"); else navigate("planner"); };
   const [faq, setFaq] = useState(0);
   const [cat, setCat] = useState("Semua layanan");
   const [loc, setLoc] = useState("Makassar & sekitarnya");
@@ -75,7 +79,7 @@ export default function Landing() {
               Temukan pelaku budaya, kelola persiapan pernikahan, dan bangun kerja sama yang lebih transparan dalam satu platform.
             </p>
             <div className="mt-6 flex flex-col gap-2.5 sm:flex-row">
-              <Button size="lg" onClick={() => navigate("planner")} trailing={<ArrowRight className="h-4 w-4" />} className="justify-center">
+              <Button size="lg" onClick={startPlan} trailing={<ArrowRight className="h-4 w-4" />} className="justify-center">
                 Mulai Rencanakan Pernikahan
               </Button>
               <Button size="lg" variant="secondary" onClick={() => navigate("jelajahi")}>
@@ -363,7 +367,7 @@ export default function Landing() {
               ))}
             </div>
             <div className="mt-6 flex flex-wrap gap-2">
-              <Button onClick={() => navigate("planner")} trailing={<ArrowRight className="h-3.5 w-3.5" />}>Mulai Rencana Acara</Button>
+              <Button onClick={startPlan} trailing={<ArrowRight className="h-3.5 w-3.5" />}>Mulai Rencana Acara</Button>
               <Button variant="secondary" onClick={() => navigate("planner")}>Lihat demo planner</Button>
             </div>
           </div>
@@ -585,7 +589,7 @@ export default function Landing() {
             <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-cream/60">Buat proyek pernikahan gratis, jelajahi pelaku budaya, dan lihat bagaimana VAKSARA menjaga setiap kesepakatan tetap terbaca.</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row lg:flex-col xl:flex-row">
-            <Button size="lg" variant="gold" onClick={() => navigate("planner")} trailing={<ArrowRight className="h-4 w-4" />}>Mulai Rencanakan Pernikahan</Button>
+            <Button size="lg" variant="gold" onClick={startPlan} trailing={<ArrowRight className="h-4 w-4" />}>Mulai Rencanakan Pernikahan</Button>
             <Button size="lg" variant="outline" className="border-white/25 text-cream hover:border-white hover:bg-white/10" onClick={() => navigate("jelajahi")}>Jelajahi Pelaku Budaya</Button>
           </div>
         </div>

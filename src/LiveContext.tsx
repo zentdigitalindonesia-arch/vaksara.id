@@ -128,6 +128,13 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const logout = async () => { await leaveLive(); location.hash = "#/beranda"; location.reload(); };
   return <Ctx.Provider value={{ live, ready, email: storedSession()?.user.email ?? "", profile, listing, syncStatus, error, refresh, saveProfile, saveListing, logout }}>{children}</Ctx.Provider>;
 }
+/** Tombol "Mulai rencana": saat server aktif, tamu diarahkan ke pendaftaran akun; pengguna yang masuk ke ruangnya. */
+export function startPlanTarget(): "daftar" | "planner" | "vendor/ringkasan" {
+  if (!liveEnabled) return "planner";
+  if (!liveBoot()) return "daftar";
+  return "planner";
+}
+
 export function useLive(): LiveAPI {
   const v = useContext(Ctx);
   if (!v) throw new Error("LiveProvider missing");
