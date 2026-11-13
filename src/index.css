@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #123a33;
+  --color-ink-soft: #3a5149;
+  --color-forest: #0b2823;
+  --color-sand: #d2a24c;
+  --color-sand-deep: #a5761f;
+  --color-sand-light: #fbf0d9;
+  --color-cream: #faf7f1;
+  --color-surface: #ffffff;
+  --color-line: #ebe4d6;
+  --color-muted: #66756f;
+  --color-sage: #e2f1e9;
+  --color-clay: #c0532e;
+  --color-clay-light: #fbe9e1;
+  --color-danger: #a4453b;
+  --color-warn: #97651c;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-sans: "Plus Jakarta Sans", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --shadow-soft: 0 1px 2px rgba(18, 58, 51, 0.04), 0 14px 34px -20px rgba(18, 58, 51, 0.25);
+  --shadow-lift: 0 2px 4px rgba(18, 58, 51, 0.05), 0 26px 50px -24px rgba(18, 58, 51, 0.32);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-cream text-ink font-sans antialiased;
+    font-feature-settings: "ss01" on;
+    background-image: radial-gradient(1200px 500px at 100% -10%, #fbf0d9 0%, transparent 60%), radial-gradient(900px 420px at -10% 0%, #e2f1e9 0%, transparent 55%);
+    background-attachment: fixed;
+  }
+  ::selection {
+    background: #c1a06e55;
+    color: #16332e;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    letter-spacing: -0.02em;
+  }
+  button, a, input, select, textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+  :focus-visible {
+    outline: 2px solid #a6854f;
+    outline-offset: 2px;
+  }
+  input, select, textarea {
+    font-family: var(--font-sans);
+  }
+}
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #d6cebd transparent;
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+
+@utility bg-grain {
+  background-image: radial-gradient(#16332e0a 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+@utility animate-rise {
+  animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #ece7dc;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, #ffffff80, transparent);
+  animation: shimmer 1.6s infinite;
+}
+
+.doc-body p {
+  margin-bottom: 0.9rem;
+  line-height: 1.75;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

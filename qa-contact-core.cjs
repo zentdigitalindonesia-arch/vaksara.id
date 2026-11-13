@@ -1,0 +1,12 @@
+const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path'),ts=require('typescript');
+const compiled=ts.transpileModule(fs.readFileSync(path.join(__dirname,'src/utils/contact-demo.ts'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;
+const box={exports:{}};vm.runInNewContext(compiled,box);const {normalizeContact,checkDemoCode,demoContactReady}=box.exports;
+const pending=()=>({contact:'orang@example.test',code:'482195',issuedAt:0,expiresAt:300000,attempts:0,state:'pending'});
+test('normalisasi email dan nomor Indonesia',()=>{assert.equal(normalizeContact('email',' Orang@Example.test '),'orang@example.test');assert.equal(normalizeContact('whatsapp','0812 3456 7890'),'+6281234567890');assert.equal(normalizeContact('whatsapp','6281234567890'),'+6281234567890');});
+test('kontak salah ditolak',()=>{for(const email of ['','a@','spasi @example.test'])assert.equal(normalizeContact('email',email),null);for(const phone of ['abc','02112345','+6281'])assert.equal(normalizeContact('whatsapp',phone),null);});
+test('kode salah tidak menghasilkan status berhasil',()=>{const result=checkDemoCode(pending(),'000000',1000);assert.equal(result.challenge.state,'pending');assert.equal(result.challenge.attempts,1);});
+test('lima kegagalan mengunci tantangan',()=>{let c=pending();for(let i=0;i<5;i++)c=checkDemoCode(c,'000000',1000).challenge;assert.equal(c.state,'locked');assert.equal(checkDemoCode(c,'482195',1100).challenge.state,'locked');});
+test('kode kedaluwarsa ditolak',()=>assert.equal(checkDemoCode(pending(),'482195',300000).challenge.state,'expired'));
+test('kode dipakai sekali dan dihapus setelah berhasil',()=>{const c=checkDemoCode(pending(),'482195',1000).challenge;assert.equal(c.state,'demo_passed');assert.equal(c.code,'');assert.match(checkDemoCode(c,'482195',2000).message,/sudah digunakan/);});
+test('keberhasilan terikat pada kontak yang sama',()=>{const c=checkDemoCode(pending(),'482195',1000).challenge;assert.equal(demoContactReady(c,'orang@example.test','email',2000),true);assert.equal(demoContactReady(c,'lain@example.test','email',2000),false);});
+test('hasil simulasi tidak berlaku setelah 15 menit',()=>{const c=checkDemoCode(pending(),'482195',1000).challenge;assert.equal(demoContactReady(c,'orang@example.test','email',901000),false);});

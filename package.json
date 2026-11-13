@@ -1,0 +1,36 @@
+{
+  "name": "react-vite-tailwind",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "watch": "vite build --watch",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test qa-contact-core.cjs qa-cooperation-core.cjs qa-workspace-core.cjs && node qa-regression.cjs && node qa-rundown.cjs && node qa-contact.cjs && node qa-vendor-contact.cjs && node qa-cooperation.cjs && node qa-amanah.cjs && node qa-demo.cjs && node qa-workspace.cjs && node qa-registration.cjs && node qa-onboarding.cjs && node qa-twoway.cjs && node qa-login.cjs",
+    "check": "npm run format:check && npm run typecheck && npm run build && npm test",
+    "format": "node format.cjs",
+    "format:check": "node format.cjs --check"
+  },
+  "dependencies": {
+    "clsx": "2.1.1",
+    "lucide-react": "^1.61.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "tailwind-merge": "3.4.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.1.17",
+    "@types/node": "22.19.17",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "5.1.1",
+    "playwright": "^1.55.0",
+    "tailwindcss": "4.1.17",
+    "typescript": "5.9.3",
+    "vite": "7.3.2",
+    "vite-plugin-singlefile": "2.3.0"
+  }
+}

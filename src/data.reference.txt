@@ -1,0 +1,1315 @@
+export const images = {
+  heroCeremony:
+    "https://images.pexels.com/photos/36798352/pexels-photo-36798352.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1100&w=1500",
+  heroCouple:
+    "https://images.pexels.com/photos/36232568/pexels-photo-36232568.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1100&w=900",
+  bridePortrait:
+    "https://images.pexels.com/photos/36489030/pexels-photo-36489030.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1100&w=800",
+  brideGreen:
+    "https://images.pexels.com/photos/35423388/pexels-photo-35423388.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1000&w=750",
+  brideGold:
+    "https://images.pexels.com/photos/36232572/pexels-photo-36232572.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=900&w=1200",
+  groom:
+    "https://images.pexels.com/photos/35468129/pexels-photo-35468129.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=800&w=1200",
+  family:
+    "https://images.pexels.com/photos/36253190/pexels-photo-36253190.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=800&w=1200",
+  brideDetail:
+    "https://images.pexels.com/photos/35423359/pexels-photo-35423359.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1000&w=760",
+  weaving:
+    "https://images.pexels.com/photos/37838559/pexels-photo-37838559.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=760&w=1100",
+  weavingDetail:
+    "https://images.pexels.com/photos/37838560/pexels-photo-37838560.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1000&w=760",
+  artisan:
+    "https://images.pexels.com/photos/11218878/pexels-photo-11218878.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1000&w=760",
+  gamelan:
+    "https://images.pexels.com/photos/37429706/pexels-photo-37429706.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=800&w=1200",
+  gamelanPortrait:
+    "https://images.pexels.com/photos/39236699/pexels-photo-39236699.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1000&w=760",
+  venue:
+    "https://images.pexels.com/photos/37710451/pexels-photo-37710451.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=820&w=1200",
+  banquet:
+    "https://images.pexels.com/photos/36766881/pexels-photo-36766881.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=820&w=1200",
+  hijabPortrait:
+    "https://images.pexels.com/photos/15428639/pexels-photo-15428639.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1000&w=760",
+  womanPortrait:
+    "https://images.pexels.com/photos/6474325/pexels-photo-6474325.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1000&w=760",
+  barista:
+    "https://images.pexels.com/photos/35647484/pexels-photo-35647484.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1000&w=760",
+  cakes:
+    "https://images.pexels.com/photos/27025523/pexels-photo-27025523.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=760&w=1100",
+};
+
+export function formatIDR(n: number, compact = false) {
+  if (compact) {
+    if (n >= 1_000_000_000) return `Rp${(n / 1_000_000_000).toFixed(1).replace(".", ",")} M`;
+    if (n >= 1_000_000) return `Rp${(n / 1_000_000).toFixed(1).replace(".", ",")} jt`;
+    if (n >= 1_000) return `Rp${Math.round(n / 1_000)} rb`;
+  }
+  return `Rp${new Intl.NumberFormat("id-ID").format(n)}`;
+}
+
+export function formatNumber(n: number) {
+  return new Intl.NumberFormat("id-ID").format(n);
+}
+
+export function daysUntil(date: string) {
+  const target = new Date(date + "T00:00:00");
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  return Math.max(0, Math.round((target.getTime() - now.getTime()) / 86400000));
+}
+
+export const wedding = {
+  couple: "Nurul & Aditya",
+  fullCouple: "Nurul Amalia & Aditya Pratama",
+  date: "2027-06-12",
+  dateLabel: "Sabtu, 12 Juni 2027",
+  location: "Makassar, Sulawesi Selatan",
+  venue: "Rumah Adat Ballak Lompoa",
+  guestTarget: 300,
+  budgetTotal: 127500000,
+};
+
+export type Category = {
+  id: string;
+  name: string;
+  short: string;
+  icon: string;
+  count: number;
+  description: string;
+};
+
+export const categories: Category[] = [
+  {
+    id: "prosesi",
+    name: "Pelaksana prosesi adat",
+    short: "Prosesi Adat",
+    icon: "sparkles",
+    count: 48,
+    description: "Pemandu mappacci, akad, dan tahapan adat Bugis-Makassar.",
+  },
+  {
+    id: "musik",
+    name: "Musik tradisional",
+    short: "Musik Tradisional",
+    icon: "music",
+    count: 26,
+    description: "Pakkacaping, kesenian rebana, dan ansambel tradisional.",
+  },
+  {
+    id: "busana",
+    name: "Busana adat",
+    short: "Busana Adat",
+    icon: "shirt",
+    count: 37,
+    description: "Penjahit baju bodo, lipa' sabbe, dan aksesori adat.",
+  },
+  {
+    id: "perajin",
+    name: "Perajin & perlengkapan",
+    short: "Perajin",
+    icon: "hand",
+    count: 31,
+    description: "Tenun, anyaman, seserahan, dan perlengkapan upacara.",
+  },
+  {
+    id: "vendor",
+    name: "Vendor pendukung",
+    short: "Vendor Pendukung",
+    icon: "utensils",
+    count: 62,
+    description: "Katering, venue, dokumentasi, dan rias pengantin.",
+  },
+  {
+    id: "edukasi",
+    name: "Pemandu budaya",
+    short: "Pemandu Budaya",
+    icon: "book",
+    count: 19,
+    description: "Edukasi konteks adat dan pendampingan keluarga.",
+  },
+];
+
+export type VerificationState = "verified" | "review" | "revision";
+
+export type Practitioner = {
+  id: string;
+  name: string;
+  role: string;
+  category: string;
+  categoryId: string;
+  city: string;
+  area: string;
+  priceFrom: number;
+  rating: number;
+  reviews: number;
+  image: string;
+  cover: string;
+  verifiedIdentity: VerificationState;
+  verifiedPortfolio: VerificationState;
+  verifiedKnowledge: VerificationState;
+  summary: string;
+  expertise: string[];
+  context: string;
+  sourceNote: string;
+  experience: number;
+  projects: number;
+  languages: string[];
+  responseTime: string;
+  available: string;
+  instant: boolean;
+  portfolio: { image: string; title: string; caption: string }[];
+  packages: { name: string; price: number; unit: string; description: string; includes: string[] }[];
+  availability: { date: string; state: "Tersedia" | "Terbatas" | "Penuh" }[];
+  reviewsList: { name: string; date: string; rating: number; text: string }[];
+};
+
+const availabilityBase = [
+  { date: "2027-05-22", state: "Penuh" as const },
+  { date: "2027-05-29", state: "Terbatas" as const },
+  { date: "2027-06-05", state: "Tersedia" as const },
+  { date: "2027-06-12", state: "Tersedia" as const },
+  { date: "2027-06-19", state: "Tersedia" as const },
+  { date: "2027-06-26", state: "Penuh" as const },
+  { date: "2027-07-03", state: "Terbatas" as const },
+  { date: "2027-07-10", state: "Tersedia" as const },
+];
+
+export const practitioners: Practitioner[] = [
+  {
+    id: "nurhaeni",
+    name: "Hj. Andi Nurhaeni",
+    role: "Pemandu Prosesi Adat Bugis-Makassar",
+    category: "Prosesi Adat",
+    categoryId: "prosesi",
+    city: "Makassar",
+    area: "Somba Opu, Gowa",
+    priceFrom: 6500000,
+    rating: 4.9,
+    reviews: 32,
+    image: images.hijabPortrait,
+    cover: images.heroCeremony,
+    verifiedIdentity: "verified",
+    verifiedPortfolio: "verified",
+    verifiedKnowledge: "verified",
+    summary:
+      "Pendamping prosesi adat dengan pengalaman 18 tahun. Terbiasa memandu keluarga besar Bugis-Makassar dengan pendekatan yang hangat, runtut, dan menghormati kesepakatan keluarga.",
+    expertise: ["Mappacci", "Akad nikah adat", "Tudang sipulung keluarga", "Pappaseng & nasihat adat"],
+    context:
+      "Setiap keluarga memiliki variasi urutan dan penekanan adat. Saya selalu memulai dengan pertemuan keluarga untuk menyepakati susunan acara, bukan menerapkan satu pakem untuk semua.",
+    sourceNote:
+      "Rujukan praktik: wawancara bersama tokoh adat Gowa (2025) dan dokumentasi Sanggar Tolo' Batara. Konteks dapat berbeda antarkeluarga.",
+    experience: 18,
+    projects: 146,
+    languages: ["Bugis", "Makassar", "Indonesia"],
+    responseTime: "± 2 jam",
+    available: "Tersedia untuk Juni 2027",
+    instant: true,
+    portfolio: [
+      { image: images.heroCeremony, title: "Prosesi Mappacci", caption: "Kendari, 2025 — dokumentasi keluarga" },
+      { image: images.family, title: "Tudang keluarga", caption: "Gowa, 2025 — pertemuan kesepakatan adat" },
+      { image: images.brideGold, title: "Penyambutan pengantin", caption: "Makassar, 2024 — sesi dokumentasi" },
+    ],
+    packages: [
+      {
+        name: "Pendampingan Prosesi Inti",
+        price: 6500000,
+        unit: "/ keluarga",
+        description: "Pemanduan mappacci dan akad dalam satu hari.",
+        includes: ["Konsultasi 2 sesi", "Rundown adat", "Pendampingan 6 jam", "Koordinasi keluarga inti"],
+      },
+      {
+        name: "Paket Adat Lengkap",
+        price: 12500000,
+        unit: "/ keluarga",
+        description: "Pendampingan tiga tahap prosesi termasuk pertemuan keluarga.",
+        includes: ["Konsultasi tanpa batas", "3 tahap prosesi", "Koordinasi 2 penanggung jawab keluarga", "Naskah nasihat adat"],
+      },
+    ],
+    availability: availabilityBase,
+    reviewsList: [
+      {
+        name: "Rahmawati H.",
+        date: "Mei 2026",
+        rating: 5,
+        text: "Sangat membantu menjelaskan urutan adat kepada keluarga dari luar kota. Tidak memaksakan satu versi tradisi.",
+      },
+      {
+        name: "Fadli A.",
+        date: "April 2026",
+        rating: 5,
+        text: "Koordinasi mappacci sangat tenang. Semua keluarga tahu perannya karena bidan adat memperkenalkan susunan acara lebih dulu.",
+      },
+    ],
+  },
+  {
+    id: "pakkacaping",
+    name: "Sanggar Pa'rasanganta",
+    role: "Grup Musik Tradisional Pakkacaping",
+    category: "Musik Tradisional",
+    categoryId: "musik",
+    city: "Makassar",
+    area: "Tamalate",
+    priceFrom: 4500000,
+    rating: 4.8,
+    reviews: 24,
+    image: images.gamelan,
+    cover: images.gamelan,
+    verifiedIdentity: "verified",
+    verifiedPortfolio: "verified",
+    verifiedKnowledge: "verified",
+    summary:
+      "Enam pemusik pakkacaping aktif yang tampil untuk prosesi dan resepsi. Repertoar disesuaikan dengan konteks acara dan arahan keluarga.",
+    expertise: ["Pakkacaping", "Kelong", "Musik prosesi", "Ansambel akustik"],
+    context:
+      "Pakkacaping bukan sekadar pengiring, tetapi bagian dari penyampaian suasana. Kami mendiskusikan larangan dan preferensi keluarga sebelum menyusun susunan lagu.",
+    sourceNote: "Praktik dan pelatihan sanggar di Makassar, diperbarui Mei 2026.",
+    experience: 12,
+    projects: 210,
+    languages: ["Makassar", "Bugis", "Indonesia"],
+    responseTime: "± 4 jam",
+    available: "Tersedia untuk Juni 2027",
+    instant: false,
+    portfolio: [
+      { image: images.gamelan, title: "Ansambel pakkacaping", caption: "Latihan rutin di Tamalate, 2026" },
+      { image: images.gamelanPortrait, title: "Pengiring prosesi", caption: "Makassar, 2025" },
+      { image: images.heroCeremony, title: "Momen penyambutan", caption: "Gowa, 2025" },
+    ],
+    packages: [
+      {
+        name: "Ensamble Prosesi",
+        price: 4500000,
+        unit: "/ 4 jam",
+        description: "Empat pemusik untuk penyambutan dan prosesi.",
+        includes: ["4 personel", "2 sesi 60 menit", "Pengaturan suara dasar"],
+      },
+      {
+        name: "Ensamble Resepsi",
+        price: 7500000,
+        unit: "/ 6 jam",
+        description: "Enam pemusik dengan repertoar adaptif.",
+        includes: ["6 personel", "Sound system", "Sesi latihan bersama keluarga"],
+      },
+    ],
+    availability: availabilityBase,
+    reviewsList: [
+      {
+        name: "Nanda & Ilham",
+        date: "Mei 2026",
+        rating: 5,
+        text: "Tim datang lebih awal dan berkoordinasi dengan pemandu adat. Suasana prosesi terasa khidmat.",
+      },
+      {
+        name: "Hj. Bahtiar",
+        date: "Februari 2026",
+        rating: 4,
+        text: "Kualitas permainan baik. Repertoar bisa lebih disesuaikan lagi dengan permintaan keluarga.",
+      },
+    ],
+  },
+  {
+    id: "lipa-sabbe",
+    name: "Rumah Tenun Lipa' Sabbe",
+    role: "Perajin & Penenun Lipa' Sabbe",
+    category: "Perajin",
+    categoryId: "perajin",
+    city: "Wajo",
+    area: "Sengkang",
+    priceFrom: 1800000,
+    rating: 4.9,
+    reviews: 41,
+    image: images.artisan,
+    cover: images.weaving,
+    verifiedIdentity: "verified",
+    verifiedPortfolio: "verified",
+    verifiedKnowledge: "verified",
+    summary:
+      "Keluarga penenun generasi ketiga di Sengkang. Menerima pesanan lipa' sabbe dan kain adat dengan proses tenun yang dapat ditelusuri.",
+    expertise: ["Tenun sutra", "Lipa' sabbe", "Motif sesuai permintaan", "Konsultasi kain adat"],
+    context:
+      "Kami tidak mengklaim satu motif sebagai satu-satunya motif Bugis. Pembeli diajak memahami cerita dan konteks kain sebelum menentukan pesanan.",
+    sourceNote: "Proses produksi keluarga dan catatan motif sanggar. Foto karya sendiri.",
+    experience: 22,
+    projects: 380,
+    languages: ["Bugis", "Indonesia"],
+    responseTime: "± 1 hari",
+    available: "Pesanan Juli–September 2027",
+    instant: false,
+    portfolio: [
+      { image: images.weaving, title: "Proses tenun", caption: "Sengkang, 2026" },
+      { image: images.weavingDetail, title: "Motif pesanan", caption: "Kain sutra, 2026" },
+      { image: images.brideGreen, title: "Busana serasi", caption: "Hasil kolaborasi penjahit, 2025" },
+    ],
+    packages: [
+      {
+        name: "Konsultasi & Sampel Kain",
+        price: 1800000,
+        unit: "/ pesanan",
+        description: "Konsultasi motif dan paket sampel kain untuk keluarga.",
+        includes: ["3 sampel motif", "Konsultasi 60 menit", "Panduan perawatan kain"],
+      },
+      {
+        name: "Set Busana Pengantin",
+        price: 8500000,
+        unit: "/ set",
+        description: "Lipa' sabbe dan kain pasangan, dikerjakan sesuai waktu.",
+        includes: ["Kain pengantin", "Kain pendamping", "Konsultasi motif", "Boks penyimpanan"],
+      },
+    ],
+    availability: availabilityBase,
+    reviewsList: [
+      {
+        name: "Aisyah M.",
+        date: "Juni 2026",
+        rating: 5,
+        text: "Menunggu pesanan memang perlu waktu, tetapi komunikasinya jelas dan hasilnya rapi.",
+      },
+      {
+        name: "Andi T.",
+        date: "Maret 2026",
+        rating: 5,
+        text: "Saya senang diajak memahami konteks motif tanpa merasa diburu untuk memesan.",
+      },
+    ],
+  },
+  {
+    id: "sanggar-busana",
+    name: "Sanggar Riase Kalase",
+    role: "Penata Rias & Busana Adat",
+    category: "Busana Adat",
+    categoryId: "busana",
+    city: "Gowa",
+    area: "Sungguminasa",
+    priceFrom: 5500000,
+    rating: 4.8,
+    reviews: 29,
+    image: images.womanPortrait,
+    cover: images.bridePortrait,
+    verifiedIdentity: "verified",
+    verifiedPortfolio: "verified",
+    verifiedKnowledge: "review",
+    summary:
+      "Penata rias pengantin yang berfokus pada tampilan Bugis-Makassar yang nyaman, dengan pemahaman tata rambut dan aksesori adat.",
+    expertise: ["Rias pengantin", "Tata rambut adat", "Pemasangan aksesori", "Uji coba rias"],
+    context:
+      "Pengetahuan aksesori sedang dalam peninjauan ulang bersama pemandu adat. Saya tidak akan memakai atribut yang tidak disepakati keluarga.",
+    sourceNote: "Portofolio dan sertifikat rias telah diperiksa. Pemeriksaan pengetahuan budaya sedang berlangsung.",
+    experience: 9,
+    projects: 118,
+    languages: ["Makassar", "Indonesia"],
+    responseTime: "± 3 jam",
+    available: "Tersedia untuk Juni 2027",
+    instant: true,
+    portfolio: [
+      { image: images.bridePortrait, title: "Rias pengantin Bugis", caption: "Makassar, 2026" },
+      { image: images.brideGold, title: "Penyempurnaan aksesori", caption: "Gowa, 2026" },
+      { image: images.brideDetail, title: "Detail Baju Bodo", caption: "Makassar, 2025" },
+    ],
+    packages: [
+      {
+        name: "Rias Pengantin & Uji Coba",
+        price: 5500000,
+        unit: "/ pengantin",
+        description: "Termasuk uji coba rias dan aksesori dasar.",
+        includes: ["Uji coba 1 kali", "Rias hari acara", "Aksesori dasar", "Retouch"],
+      },
+      {
+        name: "Rias Keluarga Inti",
+        price: 9500000,
+        unit: "/ 5 orang",
+        description: "Rias pengantin dan empat anggota keluarga inti.",
+        includes: ["Uji coba", "5 orang rias", "Aksesori keluarga", "Tim 2 perias"],
+      },
+    ],
+    availability: availabilityBase,
+    reviewsList: [
+      {
+        name: "Sari P.",
+        date: "Juni 2026",
+        rating: 5,
+        text: "Riasannya nyaman untuk acara panjang dan hasilnya tetap segar.",
+      },
+      {
+        name: "Nur F.",
+        date: "Januari 2026",
+        rating: 4,
+        text: "Komunikasi soal aksesori adat sangat terbuka. Menunggu konfirmasi keluarga jadi lebih mudah.",
+      },
+    ],
+  },
+  {
+    id: "dapur-cita",
+    name: "Dapur Cita Nusantara",
+    role: "Katering Pernikahan & Hidangan Tradisional",
+    category: "Vendor Pendukung",
+    categoryId: "vendor",
+    city: "Makassar",
+    area: "Panakkukang",
+    priceFrom: 95000,
+    rating: 4.7,
+    reviews: 56,
+    image: images.banquet,
+    cover: images.banquet,
+    verifiedIdentity: "verified",
+    verifiedPortfolio: "verified",
+    verifiedKnowledge: "verified",
+    summary:
+      "Katering dengan menu Bugis-Makassar dan prasmanan modern. Menyediakan opsi halal, uji rasa, serta perhitungan porsi transparan.",
+    expertise: ["Prasmanan", "Hidangan Bugis", "Uji rasa", "Porsi keluarga"],
+    context:
+      "Menu adat tidak selalu sama di setiap daerah. Kami menyusun menu bersama keluarga dan menyesuaikan dengan jumlah tamu, bukan menawarkan paket seragam.",
+    sourceNote: "Izin usaha, dapur, dan sertifikat halal tersedia untuk ditinjau pada bagian screening.",
+    experience: 10,
+    projects: 172,
+    languages: ["Makassar", "Bugis", "Indonesia"],
+    responseTime: "± 5 jam",
+    available: "Tersedia — pesan 60 hari sebelum acara",
+    instant: false,
+    portfolio: [
+      { image: images.banquet, title: "Prasmanan keluarga", caption: "Makassar, 2026" },
+      { image: images.cakes, title: "Hidangan penyambutan", caption: "Bandung, dokumentasi menu" },
+      { image: images.venue, title: "Tata meja", caption: "Makassar, 2025" },
+    ],
+    packages: [
+      {
+        name: "Prasmanan 100 Tamu",
+        price: 9500000,
+        unit: "/ 100 tamu",
+        description: "Pilihan 8 menu dengan jalur pelayanan.",
+        includes: ["8 hidangan", "Peralatan prasmanan", "Tim pelayanan", "Uji rasa 4 orang"],
+      },
+      {
+        name: "Paket Keluarga 200 Tamu",
+        price: 18500000,
+        unit: "/ 200 tamu",
+        description: "Prasmanan dua sisi dengan opsi hidangan adat.",
+        includes: ["10 hidangan", "2 jalur prasmanan", "Tim pelayanan", "Uji rasa keluarga"],
+      },
+    ],
+    availability: availabilityBase,
+    reviewsList: [
+      {
+        name: "Ilham P.",
+        date: "Mei 2026",
+        rating: 5,
+        text: "Porsi sesuai perjanjian dan tim pelayanan sigap. Koordinasi dengan pihak venue berjalan lancar.",
+      },
+      {
+        name: "Dewi A.",
+        date: "Maret 2026",
+        rating: 4,
+        text: "Uji rasa membantu. Kami mengubah satu menu dan perubahan itu dicatat dalam BAST.",
+      },
+    ],
+  },
+  {
+    id: "lensa-pesisir",
+    name: "Lensa Pesisir Studio",
+    role: "Dokumentasi Foto & Video",
+    category: "Vendor Pendukung",
+    categoryId: "vendor",
+    city: "Makassar",
+    area: "Losari",
+    priceFrom: 6500000,
+    rating: 4.6,
+    reviews: 38,
+    image: images.barista,
+    cover: images.groom,
+    verifiedIdentity: "verified",
+    verifiedPortfolio: "review",
+    verifiedKnowledge: "verified",
+    summary:
+      "Studio dokumentasi untuk prosesi adat dan resepsi. Menyediakan rincian jumlah hasil kerja dan jadwal pengiriman yang jelas dalam perjanjian.",
+    expertise: ["Dokumentasi prosesi", "Foto keluarga", "Video highlight", "Retouch"],
+    context:
+      "Momen adat tidak dijadikan properti eksotis. Arah pengambilan gambar didiskusikan agar tetap sopan dan sesuai permintaan keluarga.",
+    sourceNote: "Portofolio diperbarui. Peninjauan portfolio dilakukan berkala terhadap contoh karya terbaru.",
+    experience: 7,
+    projects: 94,
+    languages: ["Makassar", "Indonesia"],
+    responseTime: "± 6 jam",
+    available: "Tersedia — 2 slot Juni 2027",
+    instant: false,
+    portfolio: [
+      { image: images.groom, title: "Detail busana", caption: "Makassar, 2026" },
+      { image: images.brideGold, title: "Pasangan pengantin", caption: "Gowa, 2026" },
+      { image: images.heroCeremony, title: "Dokumentasi prosesi", caption: "Kendari, 2025" },
+    ],
+    packages: [
+      {
+        name: "Dokumentasi Inti",
+        price: 6500000,
+        unit: "/ hari",
+        description: "Foto dan video prosesi inti.",
+        includes: ["2 fotografer", "1 videografer", "120 foto edit", "Video 3 menit"],
+      },
+      {
+        name: "Dokumentasi Lengkap",
+        price: 9500000,
+        unit: "/ hari",
+        description: "Dokumentasi persiapan sampai resepsi.",
+        includes: ["3 fotografer", "2 videografer", "250 foto edit", "Video 5 menit", "Album digital"],
+      },
+    ],
+    availability: availabilityBase,
+    reviewsList: [
+      {
+        name: "Riska & Fahmi",
+        date: "Mei 2026",
+        rating: 5,
+        text: "Video highlight sesuai permintaan dan tidak mengganggu prosesi.",
+      },
+      {
+        name: "Adnan H.",
+        date: "Desember 2025",
+        rating: 4,
+        text: "Hasil foto baik. Revisi small number diproses sesuai jangka waktu.",
+      },
+    ],
+  },
+  {
+    id: "ibrahim",
+    name: "Ustaz Ibrahim Saleh",
+    role: "Pemandu Akad & Konsultasi Keluarga",
+    category: "Prosesi Adat",
+    categoryId: "prosesi",
+    city: "Maros",
+    area: "Turikale",
+    priceFrom: 2000000,
+    rating: 4.9,
+    reviews: 17,
+    image: images.groom,
+    cover: images.family,
+    verifiedIdentity: "verified",
+    verifiedPortfolio: "verified",
+    verifiedKnowledge: "review",
+    summary:
+      "Pemandu akad dengan pendekatan konsultatif kepada kedua keluarga. Layanan difokuskan pada nasihat, tata cara, dan koordinasi dengan pemandu adat.",
+    expertise: ["Akad nikah", "Konsultasi keluarga", "Pencatatan urutan acara"],
+    context:
+      "Tradisi lokal dan ketentuan agama adalah dua hal yang berbeda. Saya membantu keluarga membedakan keduanya dengan tenang.",
+    sourceNote: "Verifikasi identitas dan pengalaman telah selesai. Validasi rujukan budaya sedang ditinjau.",
+    experience: 14,
+    projects: 88,
+    languages: ["Bugis", "Indonesia"],
+    responseTime: "± 1 hari",
+    available: "Tersedia untuk Juli 2027",
+    instant: false,
+    portfolio: [
+      { image: images.family, title: "Pertemuan keluarga", caption: "Maros, 2025" },
+      { image: images.heroCeremony, title: "Prosesi akad", caption: "Gowa, 2025" },
+      { image: images.venue, title: "Persiapan lokasi", caption: "Maros, 2024" },
+    ],
+    packages: [
+      {
+        name: "Konsultasi Keluarga",
+        price: 2000000,
+        unit: "/ sesi",
+        description: "Sesi bersama dua keluarga untuk menyepakati urutan acara.",
+        includes: ["Sesi 90 menit", "Catatan kesepakatan", "Koordinasi dengan pemandu adat"],
+      },
+    ],
+    availability: availabilityBase,
+    reviewsList: [
+      { name: "Hasan B.", date: "Maret 2026", rating: 5, text: "Sangat menenangkan dan tidak memperumit perbedaan pendapat keluarga." },
+    ],
+  },
+  {
+    id: "dekor-sulapa",
+    name: "Rumah Dekor Sulapa",
+    role: "Dekorasi & Venue Adat",
+    category: "Vendor Pendukung",
+    categoryId: "vendor",
+    city: "Gowa",
+    area: "Pattallassang",
+    priceFrom: 18000000,
+    rating: 4.8,
+    reviews: 33,
+    image: images.venue,
+    cover: images.venue,
+    verifiedIdentity: "verified",
+    verifiedPortfolio: "verified",
+    verifiedKnowledge: "verified",
+    summary:
+      "Penata dekorasi yang mengangkat material lokal dengan pendekatan sederhana. Menyediakan perencanaan tata ruang untuk prosesi dan resepsi.",
+    expertise: ["Dekorasi prosesi", "Tata panggung", "Venue keluarga", "Material lokal"],
+    context:
+      "Dekorasi dipakai untuk memperjelas ruang prosesi, bukan menutupi maknanya. Kami menghindari penambahan simbol yang tidak dipahami keluarga.",
+    sourceNote: "Rujukan tata ruang disusun bersama keluarga dan pemandu adat; catatan tersedia pada portofolio.",
+    experience: 8,
+    projects: 129,
+    languages: ["Makassar", "Indonesia"],
+    responseTime: "± 5 jam",
+    available: "Tersedia untuk Juni 2027",
+    instant: false,
+    portfolio: [
+      { image: images.venue, title: "Tata ruang prosesi", caption: "Gowa, 2026" },
+      { image: images.heroCeremony, title: "Dekorasi keluarga", caption: "Makassar, 2025" },
+      { image: images.banquet, title: "Area resepsi", caption: "Bandung, 2025" },
+    ],
+    packages: [
+      {
+        name: "Dekorasi Prosesi",
+        price: 18000000,
+        unit: "/ acara",
+        description: "Tata ruang prosesi dengan material lokal.",
+        includes: ["Rancangan 3D sederhana", "Tim bongkar-pasang", "Riset ruang"],
+      },
+    ],
+    availability: availabilityBase,
+    reviewsList: [
+      { name: "Nurul H.", date: "April 2026", rating: 5, text: "Rancangan dekorasi menghormati adat keluarga tanpa berlebihan." },
+    ],
+  },
+];
+
+export type AgreementStatus =
+  | "Draf"
+  | "Menunggu Persetujuan"
+  | "Aktif"
+  | "Menunggu BAST"
+  | "Selesai"
+  | "Sengketa"
+  | "Ditolak";
+
+export type Agreement = {
+  id: string;
+  number: string;
+  partner: string;
+  partnerInitials: string;
+  service: string;
+  value: number;
+  status: AgreementStatus;
+  nextAction: string;
+  nextTone: "warn" | "green" | "blue" | "red" | "neutral";
+  date: string;
+  update: string;
+  progress: number;
+  category: string;
+  paymentMethod: string;
+  scope: string;
+  location: string;
+  schedule: string;
+  clauses: { title: string; body: string }[];
+  versions: { version: string; date: string; by: string; note: string; state: "Disepakati" | "Draf" | "Ditinjau" }[];
+  attachments: { name: string; size: string; type: string }[];
+  approvals: { party: string; role: string; state: "Menyetujui" | "Menunggu" | "Perlu tindakan"; date?: string }[];
+  terms: { label: string; percentage: number; amount: number; due: string; status: "Lunas" | "Jatuh tempo" | "Terjadwal" | "Menunggu" }[];
+};
+
+export const agreements: Agreement[] = [
+  {
+    id: "a1",
+    number: "VKS-PJK-2027-0184",
+    partner: "Sanggar Tolo' Batara",
+    partnerInitials: "TB",
+    service: "Prosesi Mappacci & Pendampingan Adat",
+    value: 18500000,
+    status: "Menunggu BAST",
+    nextAction: "Tinjau BAST",
+    nextTone: "warn",
+    date: "12 Mei 2027",
+    update: "Hari ini",
+    progress: 78,
+    category: "Prosesi Adat",
+    paymentMethod: "Xendit (prototipe) + transfer manual",
+    scope:
+      "Pendampingan prosesi mappacci, penyusunan rundown adat, koordinasi dua sesi pertemuan keluarga, dan pendampingan hari acara selama 8 jam.",
+    location: "Rumah Adat Ballak Lompoa, Gowa",
+    schedule: "10–12 Juni 2027 · Hari utama 12 Juni 2027",
+    clauses: [
+      { title: "1. Ruang Lingkup Layanan", body: "Pelaku budaya menyediakan pendampingan prosesi mappacci sesuai susunan acara yang disepakati pada Lampiran A. Perubahan atas susunan tersebut wajib dituangkan sebagai adendum." },
+      { title: "2. Jadwal dan Lokasi", body: "Layanan dilaksanakan pada 10–12 Juni 2027 di Rumah Adat Ballak Lompoa, Gowa. Keterlambatan karena kondisi di luar kendali dicatat dalam berita acara." },
+      { title: "3. Nilai Layanan dan Termin", body: "Nilai layanan sebesar Rp18.500.000 dengan tiga termin. Pembayaran melalui gateway hanya dicatat sebagai terverifikasi setelah konfirmasi penyedia pembayaran." },
+      { title: "4. Kewajiban Para Pihak", body: "Kedua pihak wajib menanggapi permintaan konfirmasi dalam 3 hari kerja, menyediakan informasi yang benar, dan menjaga kerahasiaan dokumen keluarga." },
+      { title: "5. Hasil Kerja dan BAST", body: "Serah terima dilakukan melalui BAST digital. BAST dinyatakan diterima setelah pengantin menyatakan keputusan penerimaan dan pelaku budaya mengonfirmasi. Revisi tidak menutup ruang komunikasi." },
+      { title: "6. Perubahan Jadwal", body: "Perubahan tanggal wajib diajukan melalui pusat pengajuan perubahan dan disetujui kedua pihak. Biaya penyesuaian harus transparan dan tidak bersifat otomatis." },
+      { title: "7. Pembatalan", body: "Pembatalan lebih dari 30 hari sebelum acara mengikuti ketentuan pengembalian biaya yang sudah dikeluarkan. VAKSARA tidak menjamin pengembalian dana secara otomatis." },
+      { title: "8. Penyelesaian Perselisihan", body: "Para pihak didorong menyelesaikan perbedaan melalui fasilitasi VAKSARA. VAKSARA bukan pengadilan dan tidak memberikan putusan hukum." },
+    ],
+    versions: [
+      { version: "v1.2", date: "12 Mei 2027 · 14:22", by: "Nurul Amalia & Sanggar Tolo' Batara", note: "Versi disepakati; jumlah personel disesuaikan.", state: "Disepakati" },
+      { version: "v1.1", date: "10 Mei 2027 · 09:10", by: "Nurul Amalia", note: "Penambahan sesi pertemuan keluarga.", state: "Ditinjau" },
+      { version: "v1.0", date: "08 Mei 2027 · 16:45", by: "Sanggar Tolo' Batara", note: "Draf awal dari penawaran.", state: "Draf" },
+    ],
+    attachments: [
+      { name: "Lampiran-A_Rundown-Prosesi.pdf", size: "482 KB", type: "PDF" },
+      { name: "Rincian-Personel-Sanggar.pdf", size: "210 KB", type: "PDF" },
+      { name: "Contoh-Portofolio-Mappacci.zip", size: "8,4 MB", type: "ZIP" },
+    ],
+    approvals: [
+      { party: "Nurul Amalia", role: "Calon pengantin", state: "Menyetujui", date: "12 Mei 2027, 14:22 WITA" },
+      { party: "Sanggar Tolo' Batara", role: "Pelaku budaya", state: "Menyetujui", date: "12 Mei 2027, 14:40 WITA" },
+      { party: "VAKSARA", role: "Pencatatan prototipe", state: "Menyetujui", date: "12 Mei 2027, 14:41 WITA" },
+    ],
+    terms: [
+      { label: "Termin 1 — DP", percentage: 30, amount: 5550000, due: "15 Mei 2027", status: "Lunas" },
+      { label: "Termin 2 — Persiapan", percentage: 40, amount: 7400000, due: "01 Juni 2027", status: "Lunas" },
+      { label: "Termin 3 — Pelunasan", percentage: 30, amount: 5550000, due: "Saat BAST disetujui", status: "Menunggu" },
+    ],
+  },
+  {
+    id: "a2",
+    number: "VKS-PJK-2027-0191",
+    partner: "Anugrah Sanggar Musik",
+    partnerInitials: "AS",
+    service: "Musik Tradisional Pakkacaping",
+    value: 7500000,
+    status: "Menunggu Persetujuan",
+    nextAction: "Tunggu persetujuan vendor",
+    nextTone: "warn",
+    date: "28 Mei 2027",
+    update: "2 hari lalu",
+    progress: 24,
+    category: "Musik Tradisional",
+    paymentMethod: "Xendit (prototipe)",
+    scope: "Enam pemusik pakkacaping untuk prosesi dan resepsi, termasuk sesi latihan bersama keluarga.",
+    location: "Rumah Adat Ballak Lompoa, Gowa",
+    schedule: "12 Juni 2027 · 10.00–16.00 WITA",
+    clauses: [
+      { title: "1. Ruang Lingkup Layanan", body: "Enam personel dengan susunan repertoar dalam Lampiran A. Permintaan tambahan waktu dikenakan biaya sesuai kesepakatan." },
+      { title: "2. Hasil Kerja", body: "Pelaku budaya menyerahkan rekaman latihan dan daftar repertoar final sebelum hari acara." },
+      { title: "3. Nilai dan Termin", body: "Nilai layanan Rp7.500.000 dengan DP 30% setelah versi disetujui kedua pihak." },
+    ],
+    versions: [
+      { version: "v1.0", date: "28 Mei 2027 · 11:04", by: "Nurul Amalia", note: "Draf menghadap pelaku budaya.", state: "Ditinjau" },
+    ],
+    attachments: [{ name: "Repertoar_Awal.pdf", size: "184 KB", type: "PDF" }],
+    approvals: [
+      { party: "Nurul Amalia", role: "Calon pengantin", state: "Menyetujui", date: "28 Mei 2027, 11:04 WITA" },
+      { party: "Anugrah Sanggar Musik", role: "Pelaku budaya", state: "Menunggu" },
+    ],
+    terms: [
+      { label: "Termin 1 — DP", percentage: 30, amount: 2250000, due: "Setelah persetujuan", status: "Menunggu" },
+      { label: "Termin 2 — Pelunasan", percentage: 70, amount: 5250000, due: "H+1 acara", status: "Menunggu" },
+    ],
+  },
+  {
+    id: "a3",
+    number: "VKS-PJK-2027-0175",
+    partner: "Rumah Tenun Lipa' Sabbe",
+    partnerInitials: "LS",
+    service: "Set Busana Pengantin & Konsultasi Motif",
+    value: 8500000,
+    status: "Aktif",
+    nextAction: "Terkonfirmasi",
+    nextTone: "green",
+    date: "22 April 2027",
+    update: "5 hari lalu",
+    progress: 46,
+    category: "Busana Adat",
+    paymentMethod: "Transfer bank (manual)",
+    scope: "Pemesanan satu set busana pengantin, konsultasi motif, dan panduan perawatan kain.",
+    location: "Sengkang, Wajo",
+    schedule: "Pemasangan awal 4 Juni 2027",
+    clauses: [
+      { title: "1. Spesifikasi Kain", body: "Bahan dan motif mengikuti lampiran spesifikasi. Perbedaan warna alami merupakan karakteristik tenun dan bukan cacat produksi." },
+      { title: "2. Jadwal", body: "Pengerjaan 8 minggu sejak draf disetujui. Perubahan ukuran setelah uji coba dapat menambah waktu." },
+      { title: "3. Pembayaran", body: "DP 50% dicatat manual setelah bukti transfer diverifikasi. Pelunasan sebelum penyerahan melalui BAST." },
+      { title: "4. Hasil Kerja", body: "Kain diserahkan dalam kondisi bersih dengan panduan perawatan tertulis." },
+    ],
+    versions: [{ version: "v1.1", date: "22 April 2027 · 10:15", by: "Nurul Amalia & Rumah Tenun", note: "Versi disepakati; ukuran diperbarui.", state: "Disepakati" }],
+    attachments: [{ name: "Spesifikasi-Kain.pdf", size: "312 KB", type: "PDF" }],
+    approvals: [
+      { party: "Nurul Amalia", role: "Calon pengantin", state: "Menyetujui", date: "22 April 2027" },
+      { party: "Rumah Tenun Lipa' Sabbe", role: "Perajin", state: "Menyetujui", date: "22 April 2027" },
+    ],
+    terms: [
+      { label: "Termin 1 — DP", percentage: 50, amount: 4250000, due: "22 April 2027", status: "Lunas" },
+      { label: "Termin 2 — Pelunasan", percentage: 50, amount: 4250000, due: "Saat BAST", status: "Terjadwal" },
+    ],
+  },
+  {
+    id: "a4",
+    number: "VKS-PJK-2027-0168",
+    partner: "Dapur Cita Nusantara",
+    partnerInitials: "DC",
+    service: "Prasmanan Resepsi 200 Tamu",
+    value: 32500000,
+    status: "Menunggu BAST",
+    nextAction: "Tinjau BAST",
+    nextTone: "warn",
+    date: "10 Maret 2027",
+    update: "3 hari lalu",
+    progress: 72,
+    category: "Vendor Pendukung",
+    paymentMethod: "Xendit (prototipe)",
+    scope: "Prasmanan dua sisi, 10 hidangan, tim pelayanan 16 orang, dan uji rasa keluarga.",
+    location: "Rumah Adat Ballak Lompoa, Gowa",
+    schedule: "12 Juni 2027 · 11.00–15.00 WITA",
+    clauses: [
+      { title: "1. Jumlah Porsi", body: "Porsi minimum 200 tamu dengan penambahan berdasarkan kesepakatan tertulis sebelum H-7." },
+      { title: "2. Termin", body: "DP dibayar melalui gateway. Pembayaran akan ditandai terverifikasi hanya setelah konfirmasi penyedia pembayaran." },
+      { title: "3. BAST", body: "BAST memuat jumlah porsi aktual, menu yang disajikan, serta item yang tidak lengkap." },
+    ],
+    versions: [{ version: "v1.0", date: "10 Maret 2027", by: "Kedua pihak", note: "Versi disepakati.", state: "Disepakati" }],
+    attachments: [{ name: "Menu-Final.pdf", size: "205 KB", type: "PDF" }],
+    approvals: [
+      { party: "Nurul & Aditya", role: "Calon pengantin", state: "Menyetujui", date: "10 Maret 2027" },
+      { party: "Dapur Cita Nusantara", role: "Vendor", state: "Menyetujui", date: "10 Maret 2027" },
+    ],
+    terms: [
+      { label: "Termin 1 — DP", percentage: 30, amount: 9750000, due: "12 Maret 2027", status: "Lunas" },
+      { label: "Termin 2 — Mendekati acara", percentage: 40, amount: 13000000, due: "22 Mei 2027", status: "Lunas" },
+      { label: "Termin 3 — Pelunasan", percentage: 30, amount: 9750000, due: "Saat BAST", status: "Menunggu" },
+    ],
+  },
+  {
+    id: "a5",
+    number: "VKS-PJK-2027-0149",
+    partner: "Lensa Pesisir Studio",
+    partnerInitials: "LP",
+    service: "Dokumentasi Foto & Video",
+    value: 9500000,
+    status: "Sengketa",
+    nextAction: "Fasilitasi 18 Juli",
+    nextTone: "blue",
+    date: "02 Februari 2027",
+    update: "Kemarin",
+    progress: 64,
+    category: "Dokumentasi",
+    paymentMethod: "Transfer manual",
+    scope: "Dokumentasi prosesi dan resepsi, 250 foto edit, video highlight 5 menit, album digital.",
+    location: "Makassar",
+    schedule: "12 Juni 2027",
+    clauses: [
+      { title: "1. Hasil Kerja", body: "250 foto terpilih dalam format edit dan video highlight berdurasi 5 menit, diserahkan paling lambat 21 hari setelah acara." },
+      { title: "2. Revisi", body: "Dua putaran revisi minor tersedia. Permintaan penambahan sesuai ketentuan." },
+      { title: "3. BAST", body: "BAST menyatakan jumlah dan jenis file. Perbedaan jumlah hasil kerja dicatat sebagai item tidak lengkap." },
+    ],
+    versions: [{ version: "v1.0", date: "02 Februari 2027", by: "Kedua pihak", note: "Versi disepakati.", state: "Disepakati" }],
+    attachments: [{ name: "Rincian-Hasil-Kerja.pdf", size: "180 KB", type: "PDF" }],
+    approvals: [
+      { party: "Nurul Amalia", role: "Calon pengantin", state: "Menyetujui", date: "02 Februari 2027" },
+      { party: "Lensa Pesisir Studio", role: "Vendor", state: "Menyetujui", date: "02 Februari 2027" },
+    ],
+    terms: [
+      { label: "Termin 1 — DP", percentage: 40, amount: 3800000, due: "04 Februari 2027", status: "Lunas" },
+      { label: "Termin 2 — Pelunasan", percentage: 60, amount: 5700000, due: "Setelah BAST", status: "Menunggu" },
+    ],
+  },
+];
+
+export const milestoneTemplate = [
+  "Permintaan Diterima",
+  "Penawaran Disetujui",
+  "Perjanjian Disepakati",
+  "DP Dicatat",
+  "Persiapan Berjalan",
+  "Layanan Dilaksanakan",
+  "BAST Diajukan",
+  "BAST Disetujui",
+  "Selesai",
+];
+
+export type DeliveryMilestone = {
+  title: string;
+  state: "Selesai" | "Berjalan" | "Menunggu" | "Perlu tindakan";
+  date?: string;
+  note: string;
+  evidence?: string;
+};
+
+export const deliveryMilestones: DeliveryMilestone[] = [
+  { title: "Permintaan Diterima", state: "Selesai", date: "08 Mei 2027 · 09.14", note: "Permintaan pendampingan dikirim melalui VAKSARA.", evidence: "Permintaan-VKS0184.pdf" },
+  { title: "Penawaran Disetujui", state: "Selesai", date: "09 Mei 2027 · 13.40", note: "Paket Adat Lengkap disetujui. Nilai penawaran Rp18.500.000." },
+  { title: "Perjanjian Disepakati", state: "Selesai", date: "12 Mei 2027 · 14.41", note: "Versi v1.2 disetujui kedua pihak dan dikunci sebagai versi disepakati." },
+  { title: "DP Dicatat", state: "Selesai", date: "15 Mei 2027", note: "DP 30% tercatat manual melalui transfer bank dan telah diverifikasi." },
+  { title: "Persiapan Berjalan", state: "Berjalan", date: "20 Mei 2027", note: "Rundown adat dan daftar personel sedang disusun.", evidence: "Draf-Rundown-v2.pdf" },
+  { title: "Layanan Dilaksanakan", state: "Menunggu", note: "Terjadwal 10–12 Juni 2027." },
+  { title: "BAST Diajukan", state: "Menunggu", note: "Diajukan setelah seluruh item layanan selesai." },
+  { title: "BAST Disetujui", state: "Menunggu", note: "Memerlukan keputusan pengantin dan konfirmasi pelaku budaya." },
+  { title: "Selesai", state: "Menunggu", note: "Pelunasan dan penutupan perjanjian." },
+];
+
+export const payments = [
+  { id: "py1", date: "15 Mei 2027", vendor: "Sanggar Tolo' Batara", agreement: "VKS-PJK-2027-0184", label: "Termin 1 — DP 30%", amount: 5550000, method: "Transfer bank", kind: "manual" as const, status: "Tercatat manual" },
+  { id: "py2", date: "01 Jun 2027", vendor: "Sanggar Tolo' Batara", agreement: "VKS-PJK-2027-0184", label: "Termin 2 — Persiapan", amount: 7400000, method: "Xendit (prototipe)", kind: "gateway" as const, status: "Terverifikasi" },
+  { id: "py3", date: "22 Apr 2027", vendor: "Rumah Tenun Lipa' Sabbe", agreement: "VKS-PJK-2027-0175", label: "Termin 1 — DP 50%", amount: 4250000, method: "Transfer bank", kind: "manual" as const, status: "Tercatat manual" },
+  { id: "py4", date: "12 Mar 2027", vendor: "Dapur Cita Nusantara", agreement: "VKS-PJK-2027-0168", label: "Termin 1 — DP 30%", amount: 9750000, method: "Xendit (prototipe)", kind: "gateway" as const, status: "Terverifikasi" },
+  { id: "py5", date: "22 Mei 2027", vendor: "Dapur Cita Nusantara", agreement: "VKS-PJK-2027-0168", label: "Termin 2 — Mendekati acara", amount: 13000000, method: "Xendit (prototipe)", kind: "gateway" as const, status: "Terverifikasi" },
+  { id: "py6", date: "18 Jun 2027", vendor: "Lensa Pesisir Studio", agreement: "VKS-PJK-2027-0149", label: "Termin 2 — Pelunasan", amount: 5700000, method: "Transfer bank", kind: "manual" as const, status: "Menunggu BAST" },
+  { id: "py7", date: "24 Jun 2027", vendor: "Anugrah Sanggar Musik", agreement: "VKS-PJK-2027-0191", label: "Termin 1 — DP 30%", amount: 2250000, method: "Xendit (prototipe)", kind: "gateway" as const, status: "Jatuh tempo" },
+];
+
+export const budgetItems = [
+  { category: "Prosesi & adat", planned: 18500000, committed: 18500000, paid: 12950000, icon: "sparkles" },
+  { category: "Katering", planned: 32500000, committed: 32500000, paid: 22750000, icon: "utensils" },
+  { category: "Venue & dekorasi", planned: 27000000, committed: 18000000, paid: 8100000, icon: "building" },
+  { category: "Busana & rias", planned: 14500000, committed: 11800000, paid: 5800000, icon: "shirt" },
+  { category: "Dokumentasi", planned: 11500000, committed: 9500000, paid: 3450000, icon: "camera" },
+  { category: "Musik & hiburan", planned: 9500000, committed: 7500000, paid: 3800000, icon: "music" },
+  { category: "Cincin & seserahan", planned: 8000000, committed: 6900000, paid: 4200000, icon: "gift" },
+  { category: "Administrasi & kontingensi", planned: 6000000, committed: 2000000, paid: 1000000, icon: "wallet" },
+];
+
+export const checklistItems = [
+  { id: "c1", title: "Sepakati tanggal dengan dua keluarga", category: "Perencanaan", due: "10 Jan 2027", done: true, priority: "Tinggi" },
+  { id: "c2", title: "Tentukan total anggaran awal", category: "Anggaran", due: "24 Jan 2027", done: true, priority: "Tinggi" },
+  { id: "c3", title: "Pilih venue dan periksa kapasitas", category: "Venue", due: "14 Feb 2027", done: true, priority: "Tinggi" },
+  { id: "c4", title: "Kunjungi 3 pelaku prosesi adat", category: "Pelaku Budaya", due: "28 Feb 2027", done: true, priority: "Sedang" },
+  { id: "c5", title: "Uji rasa katering bersama keluarga", category: "Katering", due: "12 Mar 2027", done: true, priority: "Sedang" },
+  { id: "c6", title: "Finalkan naskah nasihat adat", category: "Prosesi", due: "30 Mei 2027", done: false, priority: "Tinggi" },
+  { id: "c7", title: "Cek revisi BAST dokumentasi", category: "Dokumentasi", due: "04 Jun 2027", done: false, priority: "Tinggi" },
+  { id: "c8", title: "Kirim undangan gelombang pertama", category: "Tamu", due: "08 Mei 2027", done: false, priority: "Sedang" },
+  { id: "c9", title: "Konfirmasi urutan 12 prosesi", category: "Prosesi", due: "21 Mei 2027", done: false, priority: "Tinggi" },
+  { id: "c10", title: "Atur transportasi keluarga besar", category: "Logistik", due: "27 Mei 2027", done: false, priority: "Rendah" },
+  { id: "c11", title: "Sesi foto keluarga inti", category: "Dokumentasi", due: "06 Jun 2027", done: false, priority: "Rendah" },
+  { id: "c12", title: "Tinjau BAST akhir semua vendor", category: "Administrasi", due: "16 Jun 2027", done: false, priority: "Tinggi" },
+];
+
+export const guests = [
+  { name: "Keluarga Andi Baso", group: "Keluarga", party: 6, rsvp: "Hadir", table: "A1", invitation: "Terkirim" },
+  { name: "Rahmawati Husain", group: "Keluarga", party: 2, rsvp: "Hadir", table: "A2", invitation: "Terkirim" },
+  { name: "Keluarga Saleh", group: "Keluarga", party: 5, rsvp: "Menunggu", table: "—", invitation: "Terkirim" },
+  { name: "Dewi & Rahmat", group: "Sahabat", party: 2, rsvp: "Hadir", table: "B1", invitation: "Terkirim" },
+  { name: "Tim Maesa Studio", group: "Rekan Kerja", party: 3, rsvp: "Hadir", table: "B2", invitation: "Dibuka" },
+  { name: "Fadli & keluarga", group: "Rekan Kerja", party: 4, rsvp: "Tidak hadir", table: "—", invitation: "Terkirim" },
+  { name: "Nanda Ayu", group: "Kampus", party: 1, rsvp: "Menunggu", table: "—", invitation: "Belum dikirim" },
+  { name: "Keluarga Ibu Suharti", group: "Tetangga", party: 4, rsvp: "Hadir", table: "C1", invitation: "Terkirim" },
+];
+
+export const rundown = [
+  { time: "06.00", title: "Persiapan rias & tim vendor tiba", owner: "Koordinator keluarga", type: "Persiapan" },
+  { time: "08.00", title: "Pemeriksaan area prosesi", owner: "Rumah Dekor Sulapa", type: "Logistik" },
+  { time: "08.30", title: "Penyambutan keluarga inti", owner: "Sanggar Pa'rasanganta", type: "Prosesi" },
+  { time: "09.00", title: "Prosesi mappacci", owner: "Hj. Andi Nurhaeni", type: "Prosesi" },
+  { time: "10.30", title: "Konsultasi & ceremonial akad nikah", owner: "Ustaz Ibrahim Saleh", type: "Prosesi" },
+  { time: "11.15", title: "Sesi foto keluarga", owner: "Lensa Pesisir Studio", type: "Dokumentasi" },
+  { time: "12.00", title: "Prasmanan keluarga & tamu undangan", owner: "Dapur Cita Nusantara", type: "Resepsi" },
+  { time: "13.30", title: "Penyampaian nasihat keluarga", owner: "Pemandu adat", type: "Prosesi" },
+  { time: "14.15", title: "Penutupan adat & salam", owner: "Keluarga inti", type: "Prosesi" },
+  { time: "15.00", title: "Bongkar dekorasi & pemeriksaan lokasi", owner: "Rumah Dekor Sulapa", type: "Logistik" },
+];
+
+export const timelineEvents = [
+  { date: "06 Jun 2027", title: "Pemasangan busana akhir", detail: "Rumah Tenun Lipa' Sabbe · 10.00 WITA", tone: "green" },
+  { date: "08 Jun 2027", title: "Persiapan venue dimulai", detail: "Rumah Dekor Sulapa · 2 hari kerja", tone: "blue" },
+  { date: "10 Jun 2027", title: "Prosesi keluarga besar", detail: "Pendampingan Hj. Andi Nurhaeni", tone: "green" },
+  { date: "12 Jun 2027", title: "Hari pernikahan", detail: "Rumah Adat Ballak Lompoa", tone: "sand" },
+  { date: "16 Jun 2027", title: "Tinjau BAST layanan akhir", detail: "Katering & dokumentasi", tone: "warn" },
+];
+
+export type DisputeStatus =
+  | "Diajukan"
+  | "Menunggu Tanggapan"
+  | "Klarifikasi"
+  | "Fasilitasi Penyelesaian"
+  | "Menunggu Persetujuan"
+  | "Selesai dengan Kesepakatan"
+  | "Tidak Terselesaikan";
+
+export type Dispute = {
+  id: string;
+  number: string;
+  agreementId: string;
+  title: string;
+  status: DisputeStatus;
+  opener: string;
+  responder: string;
+  opened: string;
+  updated: string;
+  nextAction: string;
+  clauses: string[];
+  description: string;
+  proposed: string;
+  evidence: { name: string; from: string; date: string; type: string }[];
+  messages: { by: string; role: string; date: string; text: string; type?: "clarification" | "proposal" | "note" }[];
+  officer: string;
+};
+
+export const disputes: Dispute[] = [
+  {
+    id: "d1",
+    number: "DSP-2027-0031",
+    agreementId: "a5",
+    title: "Ketidaksesuaian jumlah foto hasil dokumentasi",
+    status: "Fasilitasi Penyelesaian",
+    opener: "Nurul Amalia",
+    responder: "Lensa Pesisir Studio",
+    opened: "24 Juni 2027",
+    updated: "Kemarin, 15.10 WITA",
+    nextAction: "Fasilitasi bersama 18 Juli 2027",
+    clauses: ["Pasal 1 — Hasil Kerja", "Pasal 3 — BAST"],
+    description:
+      "Dari 250 foto yang dijanjikan pada perjanjian, 212 foto diterima dalam album digital. Studio menyampaikan 38 foto masih dalam proses edit. Saya mengajukan penyelesaian tanpa membuka tuduhan baru.",
+    proposed:
+      "Studio mengirimkan 38 foto tersisa paling lambat 20 Juli 2027. Pelunasan ditunda hingga BAST diperbarui, tanpa klaim ganti rugi.",
+    evidence: [
+      { name: "Perjanjian-VKS-0149.pdf", from: "Nurul Amalia", date: "24 Jun 2027", type: "PDF" },
+      { name: "Daftar-file-album.xlsx", from: "Nurul Amalia", date: "24 Jun 2027", type: "XLSX" },
+      { name: "Tangkapan-layar-percakapan.png", from: "Nurul Amalia", date: "24 Jun 2027", type: "PNG" },
+      { name: "Catatan_proses-edit.pdf", from: "Lensa Pesisir Studio", date: "27 Jun 2027", type: "PDF" },
+    ],
+    messages: [
+      { by: "Nurul Amalia", role: "Pengantin", date: "24 Jun 2027 · 10.12", text: "Saya mengajukan pengaduan karena jumlah file berbeda dari perjanjian. Saya melampirkan daftar file dan tangkapan layar komunikasi.", type: "proposal" },
+      { by: "Lensa Pesisir Studio", role: "Vendor", date: "27 Jun 2027 · 16.03", text: "Kami mengakui 38 foto belum terkirim. Proses edit memerlukan waktu tambahan karena dua file rusak. Kami dapat mengirim 20 foto pada 5 Juli dan sisanya 20 Juli.", type: "clarification" },
+      { by: "VAKSARA Trust Officer", role: "Trust Officer", date: "28 Jun 2027 · 09.30", text: "Kedua pihak diminta menyepakati jadwal pengiriman dan dampaknya terhadap pelunasan. Fasilitasi dijadwalkan 18 Juli 2027, pukul 14.00 WITA. Catatan ini tercatat pada audit trail.", type: "note" },
+    ],
+    officer: "Rani Saputri",
+  },
+  {
+    id: "d2",
+    number: "DSP-2027-0028",
+    agreementId: "a4",
+    title: "Perbedaan jumlah porsi saat uji rasa",
+    status: "Menunggu Tanggapan",
+    opener: "Dapur Cita Nusantara",
+    responder: "Nurul Amalia",
+    opened: "18 Juni 2027",
+    updated: "18 Juni 2027",
+    nextAction: "Menunggu klarifikasi pengantin",
+    clauses: ["Pasal 1 — Jumlah Porsi"],
+    description:
+      "Vendor mengajukan klarifikasi karena permintaan tambahan 20 porsi belum tercatat dalam perjanjian, sementara persiapan bahan telah dimulai.",
+    proposed: "Penambahan dicatat sebagai adendum dengan biaya sesuai daftar harga terlampir.",
+    evidence: [{ name: "Permintaan-tambahan.eml", from: "Dapur Cita Nusantara", date: "18 Jun 2027", type: "EML" }],
+    messages: [
+      { by: "Dapur Cita Nusantara", role: "Vendor", date: "18 Jun 2027 · 11.20", text: "Kami ingin memastikan permintaan 20 porsi tambahan tercatat transparan sebagai perubahan perjanjian.", type: "clarification" },
+    ],
+    officer: "Rani Saputri",
+  },
+  {
+    id: "d3",
+    number: "DSP-2027-0019",
+    agreementId: "a3",
+    title: "Keterlambatan pemasangan awal busana",
+    status: "Selesai dengan Kesepakatan",
+    opener: "Nurul Amalia",
+    responder: "Rumah Tenun Lipa' Sabbe",
+    opened: "10 Juni 2027",
+    updated: "15 Juni 2027",
+    nextAction: "Diarsipkan",
+    clauses: ["Pasal 2 — Jadwal"],
+    description: "Pemasangan awal terlambat satu hari karena kendala perjalanan. Kedua pihak menyepakati jadwal ulang tanpa perubahan biaya.",
+    proposed: "Pemasangan ulang 16 Juni 2027, biaya perjalanan ditanggung perajin.",
+    evidence: [{ name: "Bukti-jadwal-ulang.jpg", from: "Rumah Tenun Lipa' Sabbe", date: "15 Jun 2027", type: "JPG" }],
+    messages: [
+      { by: "Nurul Amalia", role: "Pengantin", date: "10 Jun 2027 · 08.40", text: "Pemasangan awal tidak dapat dilakukan sesuai jadwal.", type: "proposal" },
+      { by: "Rumah Tenun Lipa' Sabbe", role: "Perajin", date: "11 Jun 2027 · 10.10", text: "Kami memohon maaf dan mengusulkan pemasangan ulang tanpa biaya tambahan.", type: "clarification" },
+      { by: "VAKSARA Trust Officer", role: "Trust Officer", date: "15 Jun 2027 · 13.00", text: "Kesepakatan jadwal dicatat dan kedua pihak menutup kasus. Dokumen tetap tersedia untuk ditinjau.", type: "note" },
+    ],
+    officer: "Rani Saputri",
+  },
+  {
+    id: "d4",
+    number: "DSP-2027-0035",
+    agreementId: "a2",
+    title: "Permintaan perubahan durasi pertunjukan",
+    status: "Diajukan",
+    opener: "Nurul Amalia",
+    responder: "Anugrah Sanggar Musik",
+    opened: "Hari ini",
+    updated: "Hari ini",
+    nextAction: "Menunggu triase awal",
+    clauses: ["Pasal 3 — Ruang Lingkup"],
+    description: "Pengantin mengajukan diskusi atas rencana penambahan durasi pertunjukan 30 menit dan ingin memastikan biaya sebelum membuat keputusan.",
+    proposed: "Diskusi perubahan sebelum perjanjian disetujui; vendor menjelaskan implikasi biaya.",
+    evidence: [{ name: "Rencana-rundown.pdf", from: "Nurul Amalia", date: "Hari ini", type: "PDF" }],
+    messages: [],
+    officer: "Belum ditugaskan",
+  },
+];
+
+export const vendorBusiness = {
+  name: "Sanggar Tolo' Batara",
+  initials: "TB",
+  owner: "Hj. Andi Nurhaeni",
+  category: "Pelaku Prosesi Adat",
+  location: "Somba Opu, Gowa · Sulawesi Selatan",
+  joined: "Maret 2025",
+  completeness: 86,
+  responseRate: 96,
+  rating: 4.9,
+  reviews: 32,
+  earningsThisMonth: 12950000,
+  earningsPending: 5550000,
+  profileViews: 1248,
+  verification: [
+    { label: "Identitas dan kontak", state: "Terverifikasi", date: "18 Mei 2026", tone: "green" },
+    { label: "Dokumen usaha", state: "Terverifikasi", date: "20 Mei 2026", tone: "green" },
+    { label: "Portofolio", state: "Terverifikasi", date: "02 Jun 2026", tone: "green" },
+    { label: "Wawancara budaya", state: "Perlu perbaikan", date: "Tinjau ulang 22 Jun 2027", tone: "red" },
+    { label: "Validasi rujukan budaya", state: "Dalam tinjauan", date: "Diperbarui 12 Jun 2027", tone: "warn" },
+  ],
+};
+
+export const vendorInquiries = [
+  { id: "vi1", couple: "Nurul & Aditya", initials: "NA", service: "Paket Adat Lengkap", date: "12 Jun 2027", received: "Hari ini, 08.42", value: 12500000, status: "Baru", responseBy: "Tanggapi dalam 18 jam", message: "Kami mencari pendamping untuk prosesi mappacci dan konsultasi keluarga. Apakah bisa membantu menyusun urutan acara?" },
+  { id: "vi2", couple: "Rahma & Fadel", initials: "RF", service: "Konsultasi Prosesi", date: "04 Jul 2027", received: "Kemarin, 16.10", value: 6500000, status: "Penawaran dikirim", responseBy: "Menunggu tanggapan", message: "Keluarga kami berasal dari dua daerah. Butuh pendampingan untuk menyepakati susunan acara." },
+  { id: "vi3", couple: "Ayu & Dirga", initials: "AD", service: "Pendampingan Prosesi Adat", date: "22 Jun 2027", received: "2 hari lalu", value: 6500000, status: "Diterima", responseBy: "Menunggu perjanjian", message: "Butuh pemandu adat di Maros dengan pengalaman keluarga besar." },
+  { id: "vi4", couple: "Innah & Ical", initials: "II", service: "Paket Adat Lengkap", date: "30 Mei 2027", received: "5 hari lalu", value: 0, status: "Ditolak", responseBy: "Tanggal tidak tersedia", message: "Kami membutuhkan layanan pada 30 Mei 2027." },
+  { id: "vi5", couple: "Sarah & Arman", initials: "SA", service: "Konsultasi Prosesi", date: "12 Jun 2027", received: "6 hari lalu", value: 6500000, status: "Menunggu klarifikasi", responseBy: "Klarifikasi jadwal", message: "Apakah tersedia sesi konsultasi sebelum pukul 09.00?" },
+];
+
+export const vendorSchedule = [
+  { date: "13 Jun", time: "09.00–12.00", title: "Konsultasi keluarga — Nurul & Aditya", place: "Rumah Adat Ballak Lompoa", state: "Terkonfirmasi" },
+  { date: "14 Jun", time: "13.00–15.00", title: "Klarifikasi rundown adat", place: "Daring", state: "Terkonfirmasi" },
+  { date: "18 Jul", time: "14.00–16.00", title: "Fasilitasi pengaduan DSP-0031", place: "Daring · VAKSARA", state: "Wajib hadir" },
+  { date: "22 Jul", time: "10.00–12.00", title: "Pertemuan keluarga Ayu & Dirga", place: "Maros", state: "Perlu konfirmasi" },
+];
+
+export const earnings = [
+  { id: "e1", date: "01 Jun 2027", label: "Termin 2 — VKS-0184", amount: 7400000, method: "Xendit (prototipe)", status: "Terverifikasi" },
+  { id: "e2", date: "15 Mei 2027", label: "DP — VKS-0184", amount: 5550000, method: "Transfer bank", status: "Tercatat manual" },
+  { id: "e3", date: "22 Apr 2027", label: "DP — VKS-0175", amount: 4250000, method: "Transfer bank", status: "Tercatat manual" },
+  { id: "e4", date: "—", label: "Pelunasan — VKS-0184", amount: 5550000, method: "Menunggu BAST", status: "Tertunda" },
+];
+
+export const screeningQueue = [
+  { id: "s1", name: "Sanggar Riase Kalase", type: "Busana Adat", city: "Gowa", submitted: "16 Jun 2027", completeness: 94, flags: 1, state: "Perlu tinjauan" },
+  { id: "s2", name: "Rumah Tenun Sengkang Baru", type: "Perajin", city: "Wajo", submitted: "15 Jun 2027", completeness: 88, flags: 0, state: "Perlu tinjauan" },
+  { id: "s3", name: "Pakkacaping Tallasa", type: "Musik Tradisional", city: "Takalar", submitted: "13 Jun 2027", completeness: 76, flags: 2, state: "Perlu perbaikan" },
+  { id: "s4", name: "Dapur Bugis Ibu Ros", type: "Vendor Pendukung", city: "Makassar", submitted: "11 Jun 2027", completeness: 97, flags: 0, state: "Siap dipublikasikan" },
+  { id: "s5", name: "Sanggar Tari Pakarena", type: "Prosesi Adat", city: "Gowa", submitted: "09 Jun 2027", completeness: 62, flags: 3, state: "Ditangguhkan" },
+];
+
+export const adminUsers = [
+  { name: "Nurul Amalia", role: "Calon pengantin", email: "nurul.amalia@email.id", joined: "10 Jan 2027", status: "Aktif", verified: true },
+  { name: "Sanggar Tolo' Batara", role: "Pelaku budaya", email: "halo@tolobatara.id", joined: "18 Mar 2025", status: "Terverifikasi", verified: true },
+  { name: "Lensa Pesisir Studio", role: "Vendor", email: "studio@lensapesisir.id", joined: "02 Nov 2025", status: "Aktif", verified: true },
+  { name: "Rani Saputri", role: "Trust Officer", email: "rani.s@vaksara.id", joined: "12 Jan 2026", status: "Akses terbatas", verified: true },
+  { name: "Pakkacaping Tallasa", role: "Pelaku budaya", email: "tallasa@email.id", joined: "13 Jun 2027", status: "Screening", verified: false },
+  { name: "Fadli Andika", role: "Calon pengantin", email: "fadli.a@email.id", joined: "04 Jun 2027", status: "Aktif", verified: false },
+];
+
+export const auditLogs = [
+  { time: "Hari ini · 15.10", actor: "Rani Saputri", role: "Trust Officer", action: "Menambahkan catatan fasilitasi", object: "DSP-2027-0031", access: "Kasus ditugaskan", ip: "10.24.***.**" },
+  { time: "Hari ini · 14.42", actor: "Sistem", role: "Sistem", action: "Mengubah status BAST menjadi menunggu keputusan", object: "BAST-VKS-0184", access: "Otomatis", ip: "internal" },
+  { time: "Hari ini · 11.05", actor: "Nurul Amalia", role: "Calon pengantin", action: "Menyetujui versi perjanjian v1.2", object: "VKS-PJK-2027-0184", access: "Pemilik dokumen", ip: "103.47.***.**" },
+  { time: "Kemarin · 16.03", actor: "Lensa Pesisir Studio", role: "Vendor", action: "Mengunggah klarifikasi dan bukti", object: "DSP-2027-0031", access: "Pihak terkait", ip: "36.72.***.**" },
+  { time: "Kemarin · 09.14", actor: "Rani Saputri", role: "Trust Officer", action: "Membuka akses berkas kasus", object: "DSP-2027-0031", access: "Penugasan aktif", ip: "10.24.***.**" },
+  { time: "26 Jun · 10.11", actor: "Admin Direktori", role: "Admin", action: "Menerbitkan direktori pelaku budaya", object: "Sanggar Tolo' Batara", access: "Akses admin", ip: "10.24.***.**" },
+];
+
+export const contentModeration = [
+  { title: "Tradisi Mappacci di Gowa", type: "Artikel budaya", submitter: "Kontributor komunitas", date: "16 Jun 2027", state: "Menunggu tinjauan", flags: 1 },
+  { title: "Dokumentasi Pakkacaping Tallasa", type: "Portofolio", submitter: "Pakkacaping Tallasa", date: "15 Jun 2027", state: "Perlu sumber", flags: 2 },
+  { title: "Lipatan sejarah Lipa' Sabbe", type: "Artikel budaya", submitter: "Rumah Tenun", date: "12 Jun 2027", state: "Terverifikasi", flags: 0 },
+  { title: "Video prosesi keluarga (izin terbatas)", type: "Media", submitter: "Lensa Pesisir", date: "10 Jun 2027", state: "Dibatasi", flags: 1 },
+];
+
+export type KnowledgeArticle = {
+  id: string;
+  title: string;
+  category: string;
+  read: string;
+  status: "Terverifikasi" | "Dalam tinjauan" | "Perlu koreksi";
+  source: string;
+  validator: string;
+  excerpt: string;
+  image: string;
+  sections: { heading: string; text: string }[];
+  attribution: string;
+};
+
+export const knowledgeArticles: KnowledgeArticle[] = [
+  {
+    id: "k1",
+    title: "Mappacci: makna, variasi, dan hal yang perlu disepakati keluarga",
+    category: "Tradisi Bugis-Makassar",
+    read: "8 menit",
+    status: "Terverifikasi",
+    source: "Catatan etnografi Gowa & wawancara komunitas (2025–2026)",
+    validator: "Dewan Peninjau Budaya VAKSARA",
+    excerpt: "Mappacci bukan satu rangkaian yang identik di semua keluarga. Artikel ini menjelaskan ragam praktik dan hal yang perlu ditanyakan sebelum memesan layanan.",
+    image: images.brideGold,
+    sections: [
+      { heading: "Konteks yang perlu dipahami", text: "Mappacci merupakan bagian dari rangkaian adat pernikahan Bugis yang berhubungan dengan penyucian dan pengukuhan calon pengantin. Praktiknya dapat berbeda menurut daerah, keluarga, dan tokoh adat yang dipercaya. Tidak ada satu versi tunggal yang dapat dianggap mewakili seluruh masyarakat Bugis." },
+      { heading: "Hal yang sebaiknya disepakati", text: "Diskusikan siapa yang memandu, perlengkapan apa yang disiapkan, susunan keluarga yang hadir, serta naskah yang digunakan. Pertanyaan sederhana ini membantu keluarga dan pelaku budaya bekerja dengan ekspektasi yang sama." },
+      { heading: "Catatan untuk pemesanan layanan", text: "Layanan prosesi bukan pertunjukan wisata. Pelaku budaya profesional membantu keluarga menjalankan praktik yang bermakna, bukan menyeragamkan tradisi untuk kebutuhan komersial." },
+    ],
+    attribution: "Dirujuk dari wawancara komunitas, dokumentasi keluarga, dan peninjauan dewan budaya. Koreksi dapat diajukan melalui Pusat Pengetahuan.",
+  },
+  {
+    id: "k2",
+    title: "Sebelum memilih pemandu prosesi: lima pertanyaan yang membantu",
+    category: "Panduan keluarga",
+    read: "6 menit",
+    status: "Terverifikasi",
+    source: "Panduan internal VAKSARA & masukan lima keluarga Bugis-Makassar",
+    validator: "Tim Pengetahuan VAKSARA",
+    excerpt: "Dari pengalaman keluarga, berikut pertanyaan yang membuat proses pemesanan lebih jelas tanpa mengurangi rasa hormat pada adat.",
+    image: images.family,
+    sections: [
+      { heading: "Mulai dari keluarga", text: "Tanyakan siapa yang selama ini menjadi rujukan adat dalam keluarga. Kesepakatan internal keluarga adalah fondasi sebelum mencari pelaku budaya." },
+      { heading: "Perbedaan sebagai hal biasa", text: "Bila dua keluarga memiliki kebiasaan berbeda, catat perbedaannya dan minta panduan tentang cara menghormati keduanya. Hindari memilih layanan hanya karena tampak paling lengkap." },
+      { heading: "Rincian kerja", text: "Pastikan jam pendampingan, jumlah sesi konsultasi, dan apa yang termasuk dalam paket dituliskan dalam perjanjian." },
+    ],
+    attribution: "Disusun dari masukan keluarga dan diperbarui Mei 2026. Bukan pengganti nasihat tokoh adat keluarga.",
+  },
+  {
+    id: "k3",
+    title: "Lipa' Sabbe: membaca proses, bukan hanya motif",
+    category: "Kriya & kain",
+    read: "7 menit",
+    status: "Terverifikasi",
+    source: "Dokumentasi Rumah Tenun Lipa' Sabbe & wawancara penenun Sengkang",
+    validator: "Kurator Kriya VAKSARA",
+    excerpt: "Waktu, alat, dan tangan yang bekerja adalah bagian dari nilai sebuah kain. Ini yang perlu diketahui saat berdiskusi dengan perajin.",
+    image: images.weaving,
+    sections: [
+      { heading: "Nilai yang tidak selalu terlihat", text: "Kain tenun dapat memerlukan minggu hingga bulan. Harga mencerminkan waktu, keterampilan, dan bahan, bukan sekadar motif di permukaan." },
+      { heading: "Menghormati hak karya", text: "Minta izin sebelum memotret atau mempublikasikan proses kerja dan desain. Sebagian desain adalah kekayaan keluarga atau komunitas tertentu." },
+      { heading: "Perawatan", text: "Simpan kain dengan cara yang sesuai bahan, jauhkan dari kelembapan, dan tanyakan metode perawatan sebelum pemakaian." },
+    ],
+    attribution: "Foto dan catatan proses atas izin Rumah Tenun Lipa' Sabbe. Artikel tidak mengklaim satu motif sebagai milik eksklusif satu pihak.",
+  },
+  {
+    id: "k4",
+    title: "Musik tradisional dalam ruang pernikahan modern",
+    category: "Seni pertunjukan",
+    read: "5 menit",
+    status: "Dalam tinjauan",
+    source: "Wawancara pemusik dan penyelenggara acara",
+    validator: "Menunggu tinjauan dewan budaya",
+    excerpt: "Bagaimana pakkacaping dan ansambel tradisional menemukan tempatnya di antara sound system, jadwal, dan ekspektasi tamu.",
+    image: images.gamelan,
+    sections: [
+      { heading: "Hubungkan dengan alur acara", text: "Pemusik perlu memahami titik-titik penting acara agar permainan mendukung, bukan beradu dengan pembicara atau prosesi." },
+      { heading: "Saling menghormati di ruang kerja", text: "Kesepakatan durasi istirahat, area panggung, dan fasilitas dasar bukan hal mewah. Itu bagian dari kerja profesional." },
+      { heading: "Repertoar bukan sekadar daftar lagu", text: "Sebagian repertoar memiliki konteks tertentu. Diskusikan pemilihannya dengan pemusik dan keluarga." },
+    ],
+    attribution: "Rujukan awal dari praktisi; status validasi belum final. Mohon ajukan koreksi bila menemukan ketidaktepatan.",
+  },
+  {
+    id: "k5",
+    title: "Kesepakatan keluarga: menyusun rundown dengan dua keluarga besar",
+    category: "Panduan keluarga",
+    read: "4 menit",
+    status: "Terverifikasi",
+    source: "Template kolaboratif komunitas VAKSARA",
+    validator: "Tim Pengetahuan VAKSARA",
+    excerpt: "Template percakapan praktis untuk menyamakan harapan mengenai waktu, urutan, dan peran keluarga dalam prosesi.",
+    image: images.venue,
+    sections: [
+      { heading: "Satu sumber rundown", text: "Gunakan satu dokumen bersama agar semua vendor melihat urutan yang sama. Catat versi dan tanggal perubahan." },
+      { heading: "Tetapkan penanggung jawab", text: "Dua keluarga sebaiknya menunjuk satu penghubung utama. Ini mengurangi instruksi yang saling bertentangan." },
+      { heading: "Sisakan margin waktu", text: "Beri waktu antara prosesi utama dan resepsi. Hari pernikahan selalu memiliki hal yang tidak diperkirakan." },
+    ],
+    attribution: "Template komunitas, bukan ketentuan wajib. Sesuaikan dengan kebutuhan dan kondisi keluarga.",
+  },
+  {
+    id: "k6",
+    title: "Ketika tradisi dikomersialkan: prinsip berekonomi dengan hormat",
+    category: "Etika & komunitas",
+    read: "9 menit",
+    status: "Perlu koreksi",
+    source: "Diskusi komunitas; sumber sedang dilengkapi",
+    validator: "Belum divalidasi",
+    excerpt: "Kerangka sederhana untuk memastikan praktik budaya tetap hidup dan pelaku budaya mendapat imbal yang layak.",
+    image: images.artisan,
+    sections: [
+      { heading: "Bukan semua hal untuk dijual", text: "Sebagian praktik bersifat privat, sensitif, atau hanya boleh dilakukan oleh pihak tertentu. VAKSARA menghormati batasan ini dan dapat menolak listing yang tidak sesuai." },
+      { heading: "Persetujuan dan atribusi", text: "Gunakan foto, cerita, dan dokumentasi dengan izin. Cantumkan sumber dan komunitas yang relevan." },
+      { heading: "Hidupkan, bukan bekukan", text: "Tradisi terus berubah dan dinegosiasikan. Platform seharusnya memberi ruang kepada pelaku budaya untuk menjelaskan konteksnya sendiri." },
+    ],
+    attribution: "Artikel ini ditandai perlu koreksi karena satu sumber belum dapat diverifikasi. Mohon bantu lengkapi rujukan.",
+  },
+];
+
+export const notifications = [
+  { id: "n1", title: "BAST menunggu keputusan Anda", detail: "Prosesi Mappacci & Pendampingan Adat", time: "18 menit lalu", tone: "warn" },
+  { id: "n2", title: "Klarifikasi vendor telah diunggah", detail: "DSP-2027-0031 · Lensa Pesisir Studio", time: "1 jam lalu", tone: "blue" },
+  { id: "n3", title: "Termin pembayaran akan jatuh tempo", detail: "VKS-PJK-2027-0191 · Rp2.250.000", time: "Kemarin", tone: "green" },
+];

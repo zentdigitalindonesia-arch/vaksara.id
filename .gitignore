@@ -1,0 +1,8 @@
+node_modules/
+dist/
+qa-results/
+*.log
+.env
+.env.*
+!.env.example
+.vercel

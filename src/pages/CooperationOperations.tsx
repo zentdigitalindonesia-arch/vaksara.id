@@ -1,0 +1,9 @@
+import { useCooperation } from "@/CooperationContext";
+import { Alert, Badge, Button, Card, PageHeader } from "@/components/ui";
+import { useApp } from "@/store";
+export default function CooperationOperations({ review = false }: { review?: boolean }) {
+  const { flow } = useCooperation(), { navigate } = useApp();
+  if (review) return <><PageHeader title="Status pemeriksaan vendor" description="Status ini bersumber dari pendaftaran dan tinjauan pada skenario bersama." /><Alert tone="info" title="Simulasi pemeriksaan">Ini bukan verifikasi identitas atau sertifikasi budaya nyata. Identitas, konteks budaya dan persetujuan publikasi dicatat terpisah.</Alert><Card className="mt-4 p-5"><h2 className="font-display text-xl">{flow.accounts.vendor?.name ?? "Vendor belum didaftarkan"}</h2>{[["Identitas", flow.vendorReview.identity], ["Konteks budaya", flow.vendorReview.culture], ["Persetujuan publikasi", flow.vendorReview.consent]].map(([label, ready]) => <div key={String(label)} className="mt-3 flex justify-between gap-3 text-sm"><span>{label}</span><Badge tone={ready ? "sand" : "neutral"}>{ready ? "Simulasi dicatat" : "Belum dicatat"}</Badge></div>)}<Button className="mt-5" size="sm" variant="secondary" onClick={() => navigate("vendor/alur")}>Kelola pendaftaran vendor</Button></Card></>;
+  const events = flow.cases.flatMap(c => c.history.map(h => ({ ...h, caseId: c.id, vendor: c.vendor }))).sort((a, b) => b.time.localeCompare(a.time));
+  return <><PageHeader title="Riwayat kerja sama bersama" description="Riwayat perubahan dari sumber demo yang dipakai pengguna dan vendor. Ini catatan browser, bukan audit server yang tidak dapat diubah." /><div className="space-y-2">{events.map(h => <Card key={h.caseId + h.id} className="p-3"><p className="text-sm font-semibold">{h.vendor} · {h.action}{h.version ? ` · v${h.version}` : ""}</p><p className="mt-1 break-all text-sm text-muted">{h.time} · {h.actor} · kasus {h.caseId}</p></Card>)}</div></>;
+}
