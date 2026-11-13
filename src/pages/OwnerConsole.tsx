@@ -110,7 +110,7 @@ export default function OwnerConsole() {
   const [tab, setTab] = useState<Tab>("ringkasan");
   const [imported, setImported] = useState<{ name: string; rows: string[][]; problems: string[] } | null>(null);
   // Mode server: data langsung dari database; hanya akun admin yang dapat membaca semua baris (RLS).
-  const { profile, ready, logout: liveLogout } = useLive();
+  const { profile, ready, logout: liveLogout, email: liveEmail } = useLive();
   const liveAdmin = liveEnabled && liveBoot() && ready && profile?.is_admin === true;
   const [data, setData] = useState<LiveData | null>(null);
   const [loadError, setLoadError] = useState("");
@@ -138,7 +138,7 @@ export default function OwnerConsole() {
   if (liveEnabled) {
     if (!liveBoot()) return <LiveOwnerLogin />;
     if (!ready) return <div className="flex min-h-screen items-center justify-center bg-cream text-sm text-muted">Memuat…</div>;
-    if (!profile?.is_admin) return <div className="flex min-h-screen items-center justify-center bg-cream px-4"><Card className="max-w-sm p-6"><h1 className="font-display text-2xl text-ink">Bukan akun pemilik</h1><p className="mt-2 text-sm text-muted">Akun yang sedang masuk tidak memiliki akses admin. Keluar lalu masuk dengan akun pemilik.</p><Button className="mt-4" onClick={() => liveLogout()}>Keluar</Button></Card></div>;
+    if (!profile?.is_admin) return <div className="flex min-h-screen items-center justify-center bg-cream px-4"><Card className="max-w-sm p-6"><h1 className="font-display text-2xl text-ink">Bukan akun pemilik</h1><p className="mt-2 text-sm text-muted">Akun <b className="text-ink">{liveEmail || "ini"}</b> tidak memiliki akses admin. Keluar lalu masuk dengan akun pemilik.</p><Button className="mt-4" onClick={() => liveLogout()}>Keluar</Button></Card></div>;
   } else if (!authed) return <OwnerLogin onOk={() => setAuthed(true)} />;
   const logout = () => { if (liveEnabled) { liveLogout(); return; } sessionStorage.removeItem(OWNER_KEY); setAuthed(false); };
 
@@ -162,7 +162,7 @@ export default function OwnerConsole() {
   return <div className="min-h-screen bg-cream">
     <header className="border-b border-line bg-white"><div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
       <div><p className="text-[12px] font-bold uppercase tracking-[0.16em] text-sand-deep">Pemilik</p><h1 className="font-display text-xl text-ink">Konsol VAKSARA</h1></div>
-      <div className="flex gap-2"><Button size="sm" variant="ghost" onClick={() => navigate("beranda")}>Lihat situs</Button><Button size="sm" variant="secondary" leading={<LogOut className="h-4 w-4" />} onClick={logout}>Keluar</Button></div>
+      <div className="flex flex-wrap items-center gap-2">{liveEnabled && <span className="rounded-full bg-cream px-3 py-1.5 text-[13px] text-ink-soft ring-1 ring-line">Masuk sebagai <b className="text-ink">{liveEmail}</b> · admin</span>}<Button size="sm" variant="ghost" onClick={() => navigate("beranda")}>Lihat situs</Button><Button size="sm" variant="secondary" leading={<LogOut className="h-4 w-4" />} onClick={logout}>Keluar</Button></div>
     </div></header>
     <main className="mx-auto max-w-6xl px-4 py-5">
       {liveEnabled ? <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-line bg-white p-3 text-[13px] text-ink"><span><b>Data server:</b> langsung dari database VAKSARA (semua perangkat).{loadError && <span className="ml-1 text-[#933A2F]">{loadError}</span>}</span><Button size="sm" variant="secondary" onClick={() => loadLive()}>Muat ulang</Button></div> : <div className="mb-4 rounded-2xl border border-sand bg-sand-light p-3 text-[13px] text-ink"><b>Mode prototipe:</b> data yang tampil berasal dari browser ini dan file daftar vendor di aplikasi. Data pengguna dari perangkat lain baru terkumpul setelah backend (Supabase) dipasang.</div>}
