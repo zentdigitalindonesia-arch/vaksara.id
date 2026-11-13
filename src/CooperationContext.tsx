@@ -4,6 +4,7 @@ import { demoCooperations } from "@/utils/demo-cooperations";
 import { practitioners } from "@/data";
 import { liveBoot, liveUserId } from "@/LiveContext";
 import { friendly, q, rest } from "@/utils/supabase";
+import { T } from "@/utils/live-text";
 const KEY = "vaksara-connected-demo-v1";
 // Profil contoh yang identitasnya ditandai lolos di direktori demo dapat menerima permintaan.
 const catalog = practitioners.filter(p => p.verifiedIdentity === "verified").map(p => p.name);
@@ -22,11 +23,13 @@ export function CooperationProvider({ children }: { children: ReactNode }) {
   const [live] = useState(liveBoot);
   const [model, setModel] = useState<Model>(() => ({ flow: live ? initialFlow() : load(), error: "" }));
   const [loading, setLoading] = useState(live);
+  const loadingRef = useRef(live);
   const latest = useRef(model);
   const [storageError, setStorageError] = useState(false);
   // Mode akun nyata: id vendor per nama, cap waktu baris untuk mencegah tumpang tindih perubahan dua pihak.
   const vendorIds = useRef(new Map<string, string>());
   const stamps = useRef(new Map<string, string>());
+  const coupleNames = useRef(new Map<string, string>());
   const me = useRef<{ profile: Me | null; listing: MyListing | null }>({ profile: null, listing: null });
   const queue = useRef<Promise<void>>(Promise.resolve());
   const busy = useRef(0);
@@ -43,6 +46,7 @@ export function CooperationProvider({ children }: { children: ReactNode }) {
       me.current = { profile: profile ?? null, listing };
       vendorIds.current = new Map(listed.map(l => [l.name, l.id]));
       stamps.current = new Map(rows.map(r => [r.id, r.updated_at]));
+      coupleNames.current = new Map(rows.map(r => [r.id, r.couple_name]));
       const approved = listing?.review_status === "approved";
       const flow: Flow = {
         schema: 1,
@@ -56,7 +60,7 @@ export function CooperationProvider({ children }: { children: ReactNode }) {
       };
       commit({ flow, error: keepError ? latest.current.error : "" });
     } catch (e) { commit({ ...latest.current, error: friendly(e) }); }
-    finally { setLoading(false); }
+    finally { loadingRef.current = false; setLoading(false); }
   };
 
   useEffect(() => {
@@ -92,9 +96,29 @@ export function CooperationProvider({ children }: { children: ReactNode }) {
 
   const dispatch: API["dispatch"] = action => {
     const event: FlowAction = { ...action, id: action.id ?? crypto.randomUUID(), time: new Date().toISOString() };
+    if (live && loadingRef.current) { commit({ ...latest.current, error: "Data kerja sama masih dimuat dari server. Tunggu sebentar lalu ulangi." }); return null; }
     if (live && (event.type === "register" || event.type === "review_vendor")) { commit({ ...latest.current, error: "Di akun VAKSARA, pendaftaran dan peninjauan dilakukan melalui profil akun dan peninjau resmi." }); return null; }
-    try { const flow = transitionFlow(latest.current.flow, event); commit({ flow, error: "" }); if (live) persist(event, flow); return flow; }
-    catch (e) { commit({ ...latest.current, error: e instanceof Error ? e.message : "Tindakan ditolak." }); return null; }
+    try {
+      const current = latest.current.flow;
+      // Akun nyata: pihak lain berada di perangkatnya sendiri. Untuk validasi, isi identitas pihak lain per kerja sama
+      // dari data server (pelaku sudah ditinjau bila namanya ada di katalog), lalu kembalikan setelah transisi.
+      let base = current;
+      if (live && event.caseId) {
+        const item = current.cases.find(c => c.id === event.caseId);
+        if (item) {
+          const approved = (current.catalog ?? []).includes(item.vendor);
+          base = {
+            ...current,
+            accounts: { couple: current.accounts.couple ?? { name: coupleNames.current.get(item.id) || "Keluarga", email: "", phone: "", demoOnly: true }, vendor: current.accounts.vendor ?? (approved ? { name: item.vendor, email: "", phone: "", demoOnly: true } : null) },
+            vendorReview: current.accounts.vendor ? current.vendorReview : { identity: approved, culture: approved, consent: approved },
+          };
+        }
+      }
+      const next = transitionFlow(base, event);
+      const flow = base === current ? next : { ...next, accounts: current.accounts, vendorReview: current.vendorReview };
+      commit({ flow, error: "" }); if (live) persist(event, flow); return flow;
+    }
+    catch (e) { commit({ ...latest.current, error: e instanceof Error ? T(e.message) : "Tindakan ditolak." }); return null; }
   };
   const loadExamples = () => {
     if (live) return;

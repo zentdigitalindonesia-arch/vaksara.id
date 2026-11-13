@@ -1,7 +1,7 @@
 // Klien Supabase ringan (Auth + REST) tanpa pustaka tambahan.
 // Kunci publik (anon/publishable) aman berada di browser: akses data dibatasi Row Level Security di database.
-const URL_ = (import.meta.env?.VITE_SUPABASE_URL ?? "").replace(/\/+$/, "");
-const KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY ?? "";
+const URL_ = (import.meta.env.VITE_SUPABASE_URL ?? "").replace(/\/+$/, "");
+const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY ?? "";
 export const liveEnabled = Boolean(URL_ && KEY);
 const SESSION = "vx-auth-v1";
 
@@ -78,7 +78,7 @@ export async function session(): Promise<AuthSession | null> {
 export async function rest<T = unknown>(path: string, init: { method?: string; body?: unknown; prefer?: string; anon?: boolean; keepalive?: boolean } = {}): Promise<T> {
   if (!liveEnabled) throw new Error("Akun belum diaktifkan di server ini.");
   const s = init.anon ? null : await session();
-  const res = await fetch(`${URL_}/rest/v1/${path}`, { method: init.method ?? "GET", keepalive: init.keepalive === true,headers: { apikey: KEY, Authorization: `Bearer ${s?.access_token ?? KEY}`, "Content-Type": "application/json", ...(init.prefer ? { Prefer: init.prefer } : {}) }, body: init.body === undefined ? undefined : JSON.stringify(init.body) });
+  const res = await fetch(`${URL_}/rest/v1/${path}`, { method: init.method ?? "GET", keepalive: init.keepalive === true, headers: { apikey: KEY, Authorization: `Bearer ${s?.access_token ?? KEY}`, "Content-Type": "application/json", ...(init.prefer ? { Prefer: init.prefer } : {}) }, body: init.body === undefined ? undefined : JSON.stringify(init.body) });
   const text = await res.text(); let data: unknown = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
   if (!res.ok) { const d = (data ?? {}) as Record<string, unknown>; throw new Error(String(d.message ?? d.hint ?? d.code ?? `HTTP ${res.status}`)); }

@@ -2,6 +2,10 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { liveBoot } from "./LiveContext";
+import { phaseLabels } from "./utils/cooperation";
+
+// Akun nyata: label tahap tanpa penanda demo.
+if (liveBoot()) phaseLabels.inquiry = "Permintaan terkirim";
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(

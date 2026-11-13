@@ -4,6 +4,7 @@ import { Alert, Badge, Button, Card, Checkbox, Field, Input, PageHeader, Select,
 import { LiveAuthForm } from "@/components/LiveAuth";
 import { useLive, type Listing, type ListingInput } from "@/LiveContext";
 import { useApp } from "@/store";
+import { useCooperation } from "@/CooperationContext";
 import { formatIDR, openRequestCategories } from "@/data";
 import { instagramUrl, waNumber } from "@/data-public-vendors";
 import { friendly, q, rest } from "@/utils/supabase";
@@ -33,6 +34,7 @@ export function LiveSignupPage({ vendor }: { vendor: boolean }) {
 export function LiveVendorProfile() {
   const { profile, listing, saveListing, saveProfile, ready, error: loadError } = useLive();
   const { toast } = useApp();
+  const { reload } = useCooperation();
   const empty: ListingInput = { name: "", category: listingCategories[0], area: profile?.city ?? "Makassar", description: "", price_from: null, whatsapp: profile?.phone ?? "", instagram: "", tiktok: "", facebook: "", published: true };
   const [f, setF] = useState<ListingInput>(empty);
   const [price, setPrice] = useState("");
@@ -53,7 +55,7 @@ export function LiveVendorProfile() {
     if (!/^(\+62|62|0)8\d{7,12}$/.test(f.whatsapp.replace(/[\s().-]/g, ""))) return setError("Nomor WhatsApp tidak valid.");
     const p = price.replace(/\D/g, "");
     setBusy(true); setError("");
-    try { await saveListing({ ...f, name: f.name.trim(), description: f.description.trim(), price_from: p ? Number(p) : null, whatsapp: f.whatsapp.replace(/[\s().-]/g, ""), instagram: f.instagram.trim().replace(/^@/, ""), tiktok: f.tiktok.trim().replace(/^@/, ""), facebook: f.facebook.trim() }); toast(listing ? "Profil layanan diperbarui." : "Profil layanan tersimpan dan diajukan untuk peninjauan.", "success", "Tersimpan"); }
+    try { await saveListing({ ...f, name: f.name.trim(), description: f.description.trim(), price_from: p ? Number(p) : null, whatsapp: f.whatsapp.replace(/[\s().-]/g, ""), instagram: f.instagram.trim().replace(/^@/, ""), tiktok: f.tiktok.trim().replace(/^@/, ""), facebook: f.facebook.trim() }); toast(listing ? "Profil layanan diperbarui." : "Profil layanan tersimpan dan diajukan untuk peninjauan.", "success", "Tersimpan"); reload(); }
     catch (e) { setError(friendly(e)); } finally { setBusy(false); }
   };
   const status = listing ? statusInfo[listing.review_status] : null;
@@ -137,18 +139,20 @@ export function LiveScreening() {
   return <>
     <PageHeader title="Screening pelaku budaya" description="Periksa identitas (KTP/akun usaha), konteks budaya (prosesi yang diklaim), dan persetujuan publikasi. Hanya profil yang disetujui tampil di direktori." />
     {rows.length === 0 && <Card className="p-6 text-sm text-muted">Belum ada pendaftar.</Card>}
-    <div className="space-y-3">{rows.map(l => { const k = c(l); return <Card key={l.id} className="p-4">
-      <div className="flex flex-wrap items-center gap-2"><h2 className="font-display text-xl text-ink">{l.name}</h2><Badge tone={statusInfo[l.review_status].tone}>{statusInfo[l.review_status].label}</Badge><Badge tone="sand">{l.category}</Badge></div>
-      <p className="text-[13px] text-muted">{l.area} · WA {l.whatsapp}{l.instagram ? ` · IG @${l.instagram}` : ""} · {l.published ? "ingin tampil" : "disembunyikan pemilik"}</p>
-      <p className="mt-2 text-sm text-ink-soft">{l.description}</p>
-      <div className="mt-2 flex flex-wrap gap-2">{l.whatsapp && <a className="inline-flex items-center gap-1 text-[13px] font-semibold text-ink underline" href={`https://wa.me/${waNumber(l.whatsapp)}`} target="_blank" rel="noreferrer">Hubungi via WhatsApp <ExternalLink className="h-3 w-3" /></a>}</div>
-      <div className="mt-3 grid gap-1 sm:grid-cols-3">
-        <Checkbox checked={k.identity} onChange={v => setChecks({ ...checks, [l.id]: { ...k, identity: v } })} label="Identitas diperiksa" />
-        <Checkbox checked={k.culture} onChange={v => setChecks({ ...checks, [l.id]: { ...k, culture: v } })} label="Konteks budaya sesuai" />
-        <Checkbox checked={k.consent} onChange={v => setChecks({ ...checks, [l.id]: { ...k, consent: v } })} label="Setuju dipublikasikan" />
-      </div>
-      <Field label="Catatan untuk pelaku"><Input aria-label={`Catatan ${l.name}`} value={notes[l.id] ?? l.review_note} onChange={e => setNotes({ ...notes, [l.id]: e.target.value })} /></Field>
-      <div className="mt-3 flex flex-wrap gap-2"><Button size="sm" onClick={() => decide(l, "approved")}>Setujui & tampilkan</Button><Button size="sm" variant="secondary" onClick={() => decide(l, "rejected")}>Minta perbaikan</Button></div>
-    </Card>; })}</div>
+    <div className="space-y-3">{rows.map(l => {
+      const k = c(l); return <Card key={l.id} className="p-4">
+        <div className="flex flex-wrap items-center gap-2"><h2 className="font-display text-xl text-ink">{l.name}</h2><Badge tone={statusInfo[l.review_status].tone}>{statusInfo[l.review_status].label}</Badge><Badge tone="sand">{l.category}</Badge></div>
+        <p className="text-[13px] text-muted">{l.area} · WA {l.whatsapp}{l.instagram ? ` · IG @${l.instagram}` : ""} · {l.published ? "ingin tampil" : "disembunyikan pemilik"}</p>
+        <p className="mt-2 text-sm text-ink-soft">{l.description}</p>
+        <div className="mt-2 flex flex-wrap gap-2">{l.whatsapp && <a className="inline-flex items-center gap-1 text-[13px] font-semibold text-ink underline" href={`https://wa.me/${waNumber(l.whatsapp)}`} target="_blank" rel="noreferrer">Hubungi via WhatsApp <ExternalLink className="h-3 w-3" /></a>}</div>
+        <div className="mt-3 grid gap-1 sm:grid-cols-3">
+          <Checkbox checked={k.identity} onChange={v => setChecks({ ...checks, [l.id]: { ...k, identity: v } })} label="Identitas diperiksa" />
+          <Checkbox checked={k.culture} onChange={v => setChecks({ ...checks, [l.id]: { ...k, culture: v } })} label="Konteks budaya sesuai" />
+          <Checkbox checked={k.consent} onChange={v => setChecks({ ...checks, [l.id]: { ...k, consent: v } })} label="Setuju dipublikasikan" />
+        </div>
+        <Field label="Catatan untuk pelaku"><Input aria-label={`Catatan ${l.name}`} value={notes[l.id] ?? l.review_note} onChange={e => setNotes({ ...notes, [l.id]: e.target.value })} /></Field>
+        <div className="mt-3 flex flex-wrap gap-2"><Button size="sm" onClick={() => decide(l, "approved")}>Setujui & tampilkan</Button><Button size="sm" variant="secondary" onClick={() => decide(l, "rejected")}>Minta perbaikan</Button></div>
+      </Card>;
+    })}</div>
   </>;
 }

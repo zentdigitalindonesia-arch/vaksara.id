@@ -22,7 +22,7 @@ function RequestFacts({ r }: { r: OpenRequest }) {
 
 export function CoupleOpenRequests() {
   const { openRequests, addOpenRequest, chooseOpenRequest, navigate, toast } = useApp();
-  const { flow, dispatch, live } = useCooperation();
+  const { flow, dispatch, live, loading } = useCooperation();
   const { plan } = useEventPlan();
   const mine = openRequests.filter(r => r.mine);
   const [open, setOpen] = useState(mine.length === 0);
@@ -38,7 +38,8 @@ export function CoupleOpenRequests() {
   const choose = (r: OpenRequest, vendor: string) => {
     const id = `or-case-${Date.now().toString(36)}`;
     const request = `${r.title}. ${r.detail} (dari permintaan terbuka)`;
-    if (!dispatch({ type: "lead", actor: "couple", id, data: { vendor, date: r.date, request } })) return;
+    if (live && loading) { toast("Data masih dimuat dari server. Tunggu sebentar lalu pilih lagi.", "info"); return; }
+    if (!dispatch({ type: "lead", actor: "couple", id, data: { vendor, date: r.date, request } })) { if (live) toast("Pelaku belum dapat dipilih. Muat ulang halaman lalu coba lagi.", "error"); return; }
     if (!dispatch({ type: "submit", actor: "couple", caseId: id, data: {} })) return;
     chooseOpenRequest(r.id, vendor, id);
     toast(`${vendor} dipilih. Permintaan resmi terkirim; lanjutkan di Kerja sama.`, "success", "Pelaku dipilih");
