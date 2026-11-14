@@ -190,20 +190,17 @@ let n = 0; const ok = m => { n++; console.log('PASS', m); };
     { const alerts = await c.getByRole('alert').allInnerTexts(); const ap = psql(`select data->'approvals' from cooperations where id='${caseId}'`); if (!/"couple": true/.test(ap)) throw new Error('persetujuan keluarga tidak tersimpan: ' + ap + ' alerts=' + JSON.stringify(alerts) + ' url=' + c.url() + ' text=' + (await c.locator('main').innerText()).slice(0, 1200)); }
     ok('keluarga melihat penawaran dan menyetujui');
 
-    // ---------- Konflik: data pelaku kedaluwarsa ----------
+    // ---------- Perubahan bersamaan: server menerapkan langkah pada data terbaru ----------
     await hard(v, 'vendor/alur?case=' + encodeURIComponent(caseId));
     await phase(v, 'Persetujuan versi perjanjian');
     psql(`update cooperations set updated_at = now() where id='${caseId}'`); // pihak lain mengubah setelah pelaku memuat halaman
     await v.locator('label', { hasText: /menyetujui versi 1/ }).first().click();
     await click(v, 'Setujui sebagai vendor');
-    await v.getByText(/baru saja diperbarui pihak lain/).waitFor();
-    if (psql(`select data->'approvals'->>'vendor' from cooperations where id='${caseId}'`) !== 'false') throw new Error('perubahan dengan data lama ikut tersimpan');
-    ok('perubahan dengan data kedaluwarsa ditolak server; data terbaru dimuat ulang');
-    await phase(v, 'Persetujuan versi perjanjian');
-    await click(v, 'Setujui sebagai vendor'); // centang persetujuan masih aktif; cukup ulangi
-    await v.waitForTimeout(1000);
+    await v.waitForTimeout(1200);
     const ph = psql(`select phase from cooperations where id='${caseId}'`);
     if (!['active', 'running'].includes(ph)) throw new Error('fase setelah dua persetujuan: ' + ph);
+    if (!/"actor": "vendor", "action": "approve"/.test(psql(`select data->'history' from cooperations where id='${caseId}'`))) throw new Error('persetujuan pelaku tidak dicatat server');
+    ok('langkah dikirim ke fungsi server dan diterapkan pada data terbaru');
     ok('kedua pihak menyetujui dari perangkat masing-masing (fase ' + ph + ')');
 
     // ---------- Sengketa dan mediasi oleh peninjau ----------

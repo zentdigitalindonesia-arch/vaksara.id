@@ -117,3 +117,17 @@ export async function signedUrl(bucket: string, path: string, expiresIn = 300): 
   if (!rel) throw new Error("Tautan berkas tidak tersedia.");
   return rel.startsWith("http") ? rel : `${URL_}/storage/v1${rel.startsWith("/") ? "" : "/"}${rel}`;
 }
+
+/** Fungsi server belum dipasang di proyek Supabase (HTTP 404). */
+export class FunctionMissingError extends Error { }
+/** Memanggil Edge Function dengan sesi akun yang sedang masuk. */
+export async function callFunction<T>(name: string, body: unknown): Promise<T> {
+  if (!liveEnabled) throw new Error("Akun belum diaktifkan di server ini.");
+  const s = await session(); if (!s) throw new Error("Sesi berakhir. Silakan masuk lagi.");
+  const res = await fetch(`${URL_}/functions/v1/${name}`, { method: "POST", headers: { apikey: KEY, Authorization: `Bearer ${s.access_token}`, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const text = await res.text(); let data: unknown = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+  if (res.status === 404 && /function was not found|NOT_FOUND/i.test(text)) throw new FunctionMissingError(name);
+  if (!res.ok) { const d = (data ?? {}) as Record<string, unknown>; throw new Error(String(d.message ?? d.msg ?? d.error ?? `HTTP ${res.status}`)); }
+  return data as T;
+}

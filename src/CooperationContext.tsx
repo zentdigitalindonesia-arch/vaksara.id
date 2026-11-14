@@ -3,7 +3,7 @@ import { initialFlow, transitionFlow, validFlow, type Cooperation, type Flow, ty
 import { demoCooperations } from "@/utils/demo-cooperations";
 import { practitioners } from "@/data";
 import { liveBoot, liveUserId } from "@/LiveContext";
-import { friendly, q, rest } from "@/utils/supabase";
+import { callFunction, friendly, FunctionMissingError, q, rest } from "@/utils/supabase";
 import { T } from "@/utils/live-text";
 const KEY = "vaksara-connected-demo-v1";
 // Profil contoh yang identitasnya ditandai lolos di direktori demo dapat menerima permintaan.
@@ -76,25 +76,48 @@ export function CooperationProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [live]);
 
+  // Akun nyata: setiap langkah dikirim ke fungsi server "cooperation-action", yang menentukan pihak dari akun yang masuk
+  // dan memeriksa aturan alur. Hasil dari server menggantikan perhitungan di browser.
   const persist = (event: FlowAction, flow: Flow) => {
     busy.current++;
     queue.current = queue.current.then(async () => {
-      const uid = liveUserId();
+      let vendorId: string | undefined;
       if (event.type === "lead") {
         const c = flow.cases.find(x => x.id === event.id); if (!c) return;
-        const vendorId = vendorIds.current.get(c.vendor);
+        vendorId = vendorIds.current.get(c.vendor);
         if (!vendorId) throw new Error("Pelaku ini belum terdaftar dan ditinjau di VAKSARA sehingga belum dapat menerima permintaan.");
-        const [row] = await rest<Row[]>("cooperations", { method: "POST", body: { id: c.id, couple_id: uid, vendor_id: vendorId, couple_name: me.current.profile?.full_name ?? "", vendor_name: c.vendor, phase: c.phase, data: c }, prefer: "return=representation" });
-        if (row) stamps.current.set(c.id, row.updated_at);
-        return;
-      }
-      if (!event.caseId) return;
-      const c = flow.cases.find(x => x.id === event.caseId); if (!c) return;
-      const stamp = stamps.current.get(c.id) ?? "";
-      const rows = await rest<Row[]>(`cooperations?id=eq.${q(c.id)}&updated_at=eq.${q(stamp)}`, { method: "PATCH", body: { phase: c.phase, data: c }, prefer: "return=representation" });
-      if (!rows.length) { await loadRemote(); commit({ ...latest.current, error: "Kerja sama ini baru saja diperbarui pihak lain. Data terbaru sudah dimuat; silakan periksa lalu ulangi langkah Anda." }); return; }
-      stamps.current.set(c.id, rows[0].updated_at);
+      } else if (!event.caseId) return;
+      const body = event.type === "lead"
+        ? { vendorId, action: { type: event.type, id: event.id, data: event.data } }
+        : { caseId: event.caseId, actor: event.actor, action: { type: event.type, id: event.id, data: event.data } };
+      let row: Row;
+      try { row = (await callFunction<{ row: Row }>("cooperation-action", body)).row; }
+      catch (e) { if (e instanceof FunctionMissingError) { await legacyPersist(event, flow); return; } throw e; }
+      stamps.current.set(row.id, row.updated_at);
+      coupleNames.current.set(row.id, row.couple_name);
+      const vendorName = me.current.listing && row.vendor_id === liveUserId() ? me.current.listing.name : row.vendor_name;
+      const cur = latest.current;
+      commit({ ...cur, flow: { ...cur.flow, cases: cur.flow.cases.map(c => c.id === row.id ? { ...row.data, id: row.id, vendor: vendorName } : c) } });
     }).catch(async e => { await loadRemote(); commit({ ...latest.current, error: friendly(e) }); }).finally(() => { busy.current--; });
+  };
+  // Jalur sementara selama fungsi server belum dipasang di Supabase. Setelah SQL terbaru dijalankan, jalur ini ditolak
+  // database (hak tulis langsung dicabut), sehingga hanya fungsi server yang dapat mengubah kerja sama.
+  const legacyPersist = async (event: FlowAction, flow: Flow) => {
+    const uid = liveUserId();
+    if (event.type === "lead") {
+      const c = flow.cases.find(x => x.id === event.id); if (!c) return;
+      const vendorId = vendorIds.current.get(c.vendor);
+      if (!vendorId) throw new Error("Pelaku ini belum terdaftar dan ditinjau di VAKSARA sehingga belum dapat menerima permintaan.");
+      const [row] = await rest<Row[]>("cooperations", { method: "POST", body: { id: c.id, couple_id: uid, vendor_id: vendorId, couple_name: me.current.profile?.full_name ?? "", vendor_name: c.vendor, phase: c.phase, data: c }, prefer: "return=representation" });
+      if (row) stamps.current.set(c.id, row.updated_at);
+      return;
+    }
+    if (!event.caseId) return;
+    const c = flow.cases.find(x => x.id === event.caseId); if (!c) return;
+    const stamp = stamps.current.get(c.id) ?? "";
+    const rows = await rest<Row[]>(`cooperations?id=eq.${q(c.id)}&updated_at=eq.${q(stamp)}`, { method: "PATCH", body: { phase: c.phase, data: c }, prefer: "return=representation" });
+    if (!rows.length) { await loadRemote(); commit({ ...latest.current, error: "Kerja sama ini baru saja diperbarui pihak lain. Data terbaru sudah dimuat; silakan periksa lalu ulangi langkah Anda." }); return; }
+    stamps.current.set(c.id, rows[0].updated_at);
   };
 
   const dispatch: API["dispatch"] = action => {

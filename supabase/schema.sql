@@ -537,4 +537,7 @@ revoke select on public.vendor_listings from anon;
 grant select, insert, update, delete on
   public.profiles, public.vendor_listings, public.user_state, public.cooperations,
   public.open_requests, public.open_request_responses to authenticated;
+-- Kerja sama hanya diubah lewat Edge Function "cooperation-action" (aturan alur diperiksa di server).
+-- Browser hanya boleh membaca; menulis langsung ke tabel ini ditolak.
+revoke insert, update, delete on public.cooperations from anon, authenticated;
 grant execute on function public.is_admin() to anon, authenticated;

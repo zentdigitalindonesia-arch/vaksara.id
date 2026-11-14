@@ -10,9 +10,10 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "node --test qa-contact-core.cjs qa-cooperation-core.cjs qa-workspace-core.cjs qa-face-core.cjs && node qa-regression.cjs && node qa-rundown.cjs && node qa-contact.cjs && node qa-vendor-contact.cjs && node qa-cooperation.cjs && node qa-amanah.cjs && node qa-demo.cjs && node qa-workspace.cjs && node qa-registration.cjs && node qa-onboarding.cjs && node qa-twoway.cjs && node qa-login.cjs",
-    "check": "npm run format:check && npm run typecheck && npm run build && npm test",
+    "check": "node scripts/build-edge-functions.mjs --check && npm run format:check && npm run typecheck && npm run build && npm test",
     "format": "node format.cjs",
-    "format:check": "node format.cjs --check"
+    "format:check": "node format.cjs --check",
+    "build:functions": "node scripts/build-edge-functions.mjs"
   },
   "dependencies": {
     "clsx": "2.1.1",
