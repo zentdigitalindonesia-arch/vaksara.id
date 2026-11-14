@@ -13,7 +13,6 @@ import CooperationPage from "@/pages/CooperationPage";
 import ContactVerification, { ContactDemoProvider } from "@/pages/ContactVerification";
 import { practitioners } from "@/data";
 import { liveEnabled } from "@/utils/supabase";
-import { demoSession } from "@/utils/demo-login";
 import { Button, ToastStack } from "@/components/ui";
 import { AppLayout } from "@/layouts/AppLayout";
 import { PublicLayout } from "@/layouts/PublicLayout";
@@ -37,7 +36,7 @@ function NotFound() {
     <div className="mx-auto max-w-lg px-4 py-16 text-center">
       <div className="font-display text-[3rem] font-semibold leading-none text-sand">404</div>
       <h1 className="mt-2 font-display text-[1.5rem] font-semibold text-ink">Halaman tidak ditemukan</h1>
-      <p className="mt-2 text-[15px] leading-relaxed text-muted">Tautan ini tidak mengarah ke halaman yang ada. Kembali ke Beranda atau ruang kerja Anda.</p>
+      <p className="mt-2 text-[15px] leading-relaxed text-muted">Tautan pada prototipe mungkin menunjuk halaman yang belum tersedia. Kembali ke Beranda atau ruang kerja Anda.</p>
       <div className="mt-4 flex justify-center gap-2"><Button size="sm" onClick={() => navigate("beranda")}>Kembali ke Beranda</Button><Button size="sm" variant="secondary" onClick={() => navigate("planner")}>Ruang pengantin</Button></div>
     </div>
   );
@@ -55,10 +54,6 @@ function Router() {
   const segments = path.split("/").filter(Boolean);
   const role = roleForRoute(path);
   const isPublic = role === "public";
-  // Situs vaksara.id: pengunjung yang belum masuk tidak membuka ruang kerja contoh.
-  useEffect(() => {
-    if (liveEnabled && !live && !isPublic && !isOwnerPath(path) && !demoSession() && !/^akun\/|^vendor\/daftar/.test(path)) navigate("akun/daftar");
-  }, [live, isPublic, path, navigate]);
 
   useEffect(() => {
     const titles: Record<string, string> = {
@@ -100,7 +95,6 @@ function Router() {
   else if (path === "planner") content = <EventHome />;
   else if (["planner/rencana", "planner/planner"].includes(path)) content = <EventTools />;
   else if (path === "beranda") content = <Landing />;
-  else if (liveEnabled && !demoSession() && (path === "jelajahi" || path === "layanan" || segments[0] === "praktisi")) content = live ? <LiveVendorSearch /> : <PublicDirectory />;
   else if (path === "jelajahi") content = <Marketplace initialTab="budaya" />;
   else if (path === "layanan") content = <Marketplace initialTab="vendor" />;
   else if (segments[0] === "praktisi" && segments[1]) content = practitioners.some((p) => p.id === segments[1]) ? <PractitionerPage key={segments[1]} id={segments[1]} /> : <NotFound />;

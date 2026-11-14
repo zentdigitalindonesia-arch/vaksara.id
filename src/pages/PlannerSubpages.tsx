@@ -734,7 +734,7 @@ function RundownPage() {
               {dates.map((date) => <div key={date} className="rounded-lg border border-line p-2.5"><div className="text-[14px] font-semibold text-ink">{dateLabel(date)}</div><div className="text-[13px] text-muted">{items.filter((item) => item.date === date).length} kegiatan · WITA</div></div>)}
             </div>
           </Card>
-          <Alert tone={liveText ? "info" : "warn"} title="Versi rundown">{liveText ? "Rundown tersimpan di akun Anda dan dapat dibuka dari perangkat lain." : "Perubahan hanya berlaku selama sesi demo ini. Pembagian dan pengingat belum mengirim notifikasi nyata."}</Alert>
+          <Alert tone={liveText ? "info" : "warn"} title="Versi rundown">{liveText ? "Rundown tersimpan di akun Anda dan dapat dibuka dari perangkat lain. Pembagian ke vendor dan pengingat otomatis menyusul." : "Perubahan hanya berlaku selama sesi demo ini. Pembagian dan pengingat belum mengirim notifikasi nyata."}</Alert>
           <Button variant="secondary" full size="sm" onClick={() => navigate("bantuan")} leading={<Bell className="h-3.5 w-3.5" />}>Atur pengingat rundown</Button>
         </div>
       </div>

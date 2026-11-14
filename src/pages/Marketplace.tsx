@@ -1,5 +1,6 @@
 import { PractitionerCard } from "@/components/PractitionerCard";
 import { liveEnabled } from "@/utils/supabase";
+import { showSampleProfiles } from "@/utils/demo-login";
 import { useLive } from "@/LiveContext";
 import { LiveListingCard, useLiveListings } from "@/pages/LiveAccount";
 import { Alert, Avatar, Button, Card, Checkbox, EmptyState, Select } from "@/components/ui";
@@ -25,8 +26,25 @@ function RegisteredListings() {
     <h2 className="font-display text-2xl text-ink">Pelaku budaya terdaftar</h2>
     <p className="mt-1 text-sm text-muted">Mendaftar sendiri di VAKSARA dan lolos peninjauan identitas, konteks budaya, dan persetujuan publikasi.</p>
     <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{items.map(l => <LiveListingCard key={l.id} l={l} onRequest={!live || profile?.role === "couple" ? () => request(l.name) : undefined} />)}</div>
-    <h2 className="mt-8 font-display text-2xl text-ink">Profil contoh</h2>
-    <p className="mt-1 text-sm text-muted">Profil di bawah ini adalah ilustrasi untuk menunjukkan fitur, bukan pelaku yang dapat dipesan.</p>
+    {showSampleProfiles() && <><h2 className="mt-8 font-display text-2xl text-ink">Profil contoh</h2>
+      <p className="mt-1 text-sm text-muted">Profil di bawah ini adalah ilustrasi untuk menunjukkan fitur, bukan pelaku yang dapat dipesan.</p></>}
+  </section>;
+}
+
+/** Pengganti daftar profil contoh di vaksara.id untuk pengunjung umum dan akun nyata. */
+function RealOnlyNotice() {
+  const { items, loaded } = useLiveListings();
+  const { navigate, setAuthMode } = useApp();
+  return <section className="mx-auto max-w-[1240px] px-4 py-6 sm:px-6 sm:py-8" aria-label="Pelaku budaya lainnya">
+    <Card className="p-5">
+      <h2 className="font-display text-xl text-ink">{loaded && items.length === 0 ? "Belum ada pelaku budaya yang lolos peninjauan" : "Cari lebih banyak pelaku budaya"}</h2>
+      <p className="mt-2 text-sm text-ink-soft">Pelaku budaya yang mendaftar tampil di sini setelah identitas, konteks budaya, dan persetujuan publikasinya ditinjau. Sementara itu, usaha pernikahan di Makassar dapat dihubungi lewat direktori publik.</p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button size="sm" onClick={() => navigate("direktori-makassar")}>Buka direktori Makassar</Button>
+        <Button size="sm" variant="secondary" onClick={() => navigate("vendor/daftar")}>Daftar sebagai pelaku budaya</Button>
+        <Button size="sm" variant="ghost" onClick={() => setAuthMode("masuk")}>Lihat profil contoh dengan akun demo</Button>
+      </div>
+    </Card>
   </section>;
 }
 
@@ -199,91 +217,93 @@ export default function Marketplace({ initialTab = "budaya" }: { initialTab?: "b
       </section>
 
       {liveEnabled && initialTab === "budaya" && <RegisteredListings />}
-      <section className="mx-auto max-w-[1240px] px-4 py-6 sm:px-6 sm:py-8">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 rounded-xl border border-line bg-white p-1">
-            <button onClick={() => setTab("budaya")} className={cn("rounded-lg px-3 py-1.5 text-[14px] font-semibold transition-colors", tab === "budaya" ? "bg-ink text-cream" : "text-muted hover:text-ink")}>
-              Pelaku budaya <span className={cn("ml-1 rounded px-1 py-0.5 text-[12px]", tab === "budaya" ? "bg-white/15" : "bg-[#F1EFE9]")}>{practitioners.filter((p) => p.categoryId !== "vendor").length}</span>
-            </button>
-            <button onClick={() => setTab("vendor")} className={cn("rounded-lg px-3 py-1.5 text-[14px] font-semibold transition-colors", tab === "vendor" ? "bg-ink text-cream" : "text-muted hover:text-ink")}>
-              Vendor pendukung <span className={cn("ml-1 rounded px-1 py-0.5 text-[12px]", tab === "vendor" ? "bg-white/15" : "bg-[#F1EFE9]")}>{practitioners.filter((p) => p.categoryId === "vendor").length}</span>
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="hidden text-[14px] text-muted sm:block">{results.length} profil ditemukan</span>
-            <div className="relative">
-              <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Urutkan hasil" className="h-8 appearance-none rounded-lg border border-line bg-white pl-2.5 pr-7 text-[14px] font-semibold text-ink outline-none">
-                {sorts.map((s) => <option key={s}>{s}</option>)}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted" />
+      {showSampleProfiles() ? (
+        <section className="mx-auto max-w-[1240px] px-4 py-6 sm:px-6 sm:py-8">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 rounded-xl border border-line bg-white p-1">
+              <button onClick={() => setTab("budaya")} className={cn("rounded-lg px-3 py-1.5 text-[14px] font-semibold transition-colors", tab === "budaya" ? "bg-ink text-cream" : "text-muted hover:text-ink")}>
+                Pelaku budaya <span className={cn("ml-1 rounded px-1 py-0.5 text-[12px]", tab === "budaya" ? "bg-white/15" : "bg-[#F1EFE9]")}>{practitioners.filter((p) => p.categoryId !== "vendor").length}</span>
+              </button>
+              <button onClick={() => setTab("vendor")} className={cn("rounded-lg px-3 py-1.5 text-[14px] font-semibold transition-colors", tab === "vendor" ? "bg-ink text-cream" : "text-muted hover:text-ink")}>
+                Vendor pendukung <span className={cn("ml-1 rounded px-1 py-0.5 text-[12px]", tab === "vendor" ? "bg-white/15" : "bg-[#F1EFE9]")}>{practitioners.filter((p) => p.categoryId === "vendor").length}</span>
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="hidden text-[14px] text-muted sm:block">{results.length} profil ditemukan</span>
+              <div className="relative">
+                <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Urutkan hasil" className="h-8 appearance-none rounded-lg border border-line bg-white pl-2.5 pr-7 text-[14px] font-semibold text-ink outline-none">
+                  {sorts.map((s) => <option key={s}>{s}</option>)}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted" />
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="grid gap-5 lg:grid-cols-[228px_1fr]">
-          <aside className="hidden lg:block">
-            <Card className="sticky top-[76px] p-4">{FilterPanel}</Card>
-          </aside>
+          <div className="grid gap-5 lg:grid-cols-[228px_1fr]">
+            <aside className="hidden lg:block">
+              <Card className="sticky top-[76px] p-4">{FilterPanel}</Card>
+            </aside>
 
-          <div>
-            {activeFilters.length > 0 && (
-              <div className="mb-3 flex flex-wrap items-center gap-1.5">
-                <span className="text-[13px] font-semibold text-muted">Saringan aktif:</span>
-                {activeFilters.map((f) => (
-                  <span key={f} className="inline-flex items-center gap-1 rounded-full border border-sand/50 bg-sand-light/60 px-2 py-1 text-[13px] font-semibold text-[#6E5229]">
-                    {f}
-                    <button onClick={f === location ? () => setLocation("Semua lokasi") : f === availability ? () => setAvailability("Semua ketersediaan") : () => reset()} aria-label={`Hapus saringan ${f}`}><X className="h-2.5 w-2.5" /></button>
-                  </span>
-                ))}
-                <button onClick={reset} className="text-[13px] font-semibold text-ink underline decoration-sand underline-offset-2">Bersihkan semua</button>
-              </div>
-            )}
-            {loading ? (
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="overflow-hidden rounded-2xl border border-line bg-white">
-                    <div className="skeleton aspect-[16/11] w-full" />
-                    <div className="space-y-2 p-3.5">
-                      <div className="skeleton h-3 w-2/3 rounded" /><div className="skeleton h-2.5 w-1/2 rounded" /><div className="skeleton h-2 w-full rounded" /><div className="skeleton h-7 w-full rounded" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : results.length === 0 ? (
-              <div>
-                <EmptyState
-                  icon={<Search className="h-5 w-5" />}
-                  title="Belum ada profil yang cocok"
-                  description="Coba longgarkan lokasi atau status screening. Anda juga bisa menjelajahi kategori lain — setiap keluarga memiliki kebutuhan yang berbeda."
-                  action={<Button size="sm" variant="secondary" onClick={reset}>Atur ulang saringan</Button>}
-                />
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                  <Alert tone="info" title="Tips pencarian">Gunakan nama tradisi seperti "pakkacaping" atau "mappacci", atau pilih kategori budaya di panel saringan.</Alert>
-                  <Alert tone="warn" title="Privasi & etika">Sebagian praktik bersifat privat. Hubungi pelaku budaya untuk memahami batasan sebelum meminta layanan.</Alert>
+            <div>
+              {activeFilters.length > 0 && (
+                <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[13px] font-semibold text-muted">Saringan aktif:</span>
+                  {activeFilters.map((f) => (
+                    <span key={f} className="inline-flex items-center gap-1 rounded-full border border-sand/50 bg-sand-light/60 px-2 py-1 text-[13px] font-semibold text-[#6E5229]">
+                      {f}
+                      <button onClick={f === location ? () => setLocation("Semua lokasi") : f === availability ? () => setAvailability("Semua ketersediaan") : () => reset()} aria-label={`Hapus saringan ${f}`}><X className="h-2.5 w-2.5" /></button>
+                    </span>
+                  ))}
+                  <button onClick={reset} className="text-[13px] font-semibold text-ink underline decoration-sand underline-offset-2">Bersihkan semua</button>
                 </div>
-              </div>
-            ) : (
-              <>
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="text-[14px] text-muted"><span className="font-bold text-ink">{results.length}</span> profil {tab === "budaya" ? "pelaku budaya" : "vendor pendukung"} · data demonstrasi</p>
-                  <div className="hidden items-center gap-1 text-[13px] text-muted sm:flex"><ShieldCheck className="h-3 w-3 text-sand-deep" /> Diperbarui Juni 2027</div>
-                </div>
+              )}
+              {loading ? (
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {results.map((p) => <PractitionerCard key={p.id} p={p} />)}
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="overflow-hidden rounded-2xl border border-line bg-white">
+                      <div className="skeleton aspect-[16/11] w-full" />
+                      <div className="space-y-2 p-3.5">
+                        <div className="skeleton h-3 w-2/3 rounded" /><div className="skeleton h-2.5 w-1/2 rounded" /><div className="skeleton h-2 w-full rounded" /><div className="skeleton h-7 w-full rounded" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <Card className="mt-4 flex flex-col items-start justify-between gap-3 p-4 sm:flex-row sm:items-center">
-                  <div>
-                    <p className="text-[15px] font-bold text-ink">Tidak menemukan layanan yang Anda butuhkan?</p>
-                    <p className="mt-0.5 text-[14px] leading-relaxed text-muted">Ceritakan kebutuhan Anda. Tim kurasi akan membantu menemukan pelaku budaya yang sesuai, tanpa biaya.</p>
+              ) : results.length === 0 ? (
+                <div>
+                  <EmptyState
+                    icon={<Search className="h-5 w-5" />}
+                    title="Belum ada profil yang cocok"
+                    description="Coba longgarkan lokasi atau status screening. Anda juga bisa menjelajahi kategori lain — setiap keluarga memiliki kebutuhan yang berbeda."
+                    action={<Button size="sm" variant="secondary" onClick={reset}>Atur ulang saringan</Button>}
+                  />
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    <Alert tone="info" title="Tips pencarian">Gunakan nama tradisi seperti "pakkacaping" atau "mappacci", atau pilih kategori budaya di panel saringan.</Alert>
+                    <Alert tone="warn" title="Privasi & etika">Sebagian praktik bersifat privat. Hubungi pelaku budaya untuk memahami batasan sebelum meminta layanan.</Alert>
                   </div>
-                  <Button variant="secondary" size="sm" onClick={() => setAuthMode("daftar")} trailing={<ArrowRight className="h-3.5 w-3.5" />}>Minta rekomendasi</Button>
-                </Card>
-                <p className="mt-4 flex items-start gap-1.5 text-[13px] leading-relaxed text-muted"><ShieldCheck className="mt-0.5 h-3 w-3 shrink-0 text-sand-deep" /> Profil dan ulasan pada prototipe ini bersifat ilustratif. VAKSARA tidak menampilkan biaya iklan sebagai hasil pencarian organik.</p>
-              </>
-            )}
+                </div>
+              ) : (
+                <>
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-[14px] text-muted"><span className="font-bold text-ink">{results.length}</span> profil {tab === "budaya" ? "pelaku budaya" : "vendor pendukung"} · data demonstrasi</p>
+                    <div className="hidden items-center gap-1 text-[13px] text-muted sm:flex"><ShieldCheck className="h-3 w-3 text-sand-deep" /> Diperbarui Juni 2027</div>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {results.map((p) => <PractitionerCard key={p.id} p={p} />)}
+                  </div>
+                  <Card className="mt-4 flex flex-col items-start justify-between gap-3 p-4 sm:flex-row sm:items-center">
+                    <div>
+                      <p className="text-[15px] font-bold text-ink">Tidak menemukan layanan yang Anda butuhkan?</p>
+                      <p className="mt-0.5 text-[14px] leading-relaxed text-muted">Ceritakan kebutuhan Anda. Tim kurasi akan membantu menemukan pelaku budaya yang sesuai, tanpa biaya.</p>
+                    </div>
+                    <Button variant="secondary" size="sm" onClick={() => setAuthMode("daftar")} trailing={<ArrowRight className="h-3.5 w-3.5" />}>Minta rekomendasi</Button>
+                  </Card>
+                  <p className="mt-4 flex items-start gap-1.5 text-[13px] leading-relaxed text-muted"><ShieldCheck className="mt-0.5 h-3 w-3 shrink-0 text-sand-deep" /> Profil dan ulasan pada prototipe ini bersifat ilustratif. VAKSARA tidak menampilkan biaya iklan sebagai hasil pencarian organik.</p>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : <RealOnlyNotice />}
 
       {/* Mobile filter sheet */}
       {filtersOpen && (

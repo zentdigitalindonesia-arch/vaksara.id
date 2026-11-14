@@ -148,12 +148,16 @@ let n = 0; const ok = m => { n++; console.log('PASS', m); };
     await v.getByLabel('Catatan alur', { exact: true }).fill('Kami tersedia untuk berdiskusi tentang dua hari acara keluarga.');
     await click(v, 'Kirim respons vendor');
     await phase(v, 'Diskusi kebutuhan');
-    await v.getByLabel('Cara pembayaran alur', { exact: true }).selectOption('direct');
+    // Dana Amanah masih simulasi: akun nyata hanya menawarkan transfer langsung.
+    if (await v.getByLabel('Cara pembayaran alur', { exact: true }).count()) throw new Error('pilihan Dana Amanah masih tampil di akun nyata');
+    await v.getByText('Transfer langsung ke pelaku budaya.').waitFor();
     await click(v, 'Kirim penawaran versi baru');
     await phase(v, 'Penawaran tersedia');
     await v.waitForTimeout(800);
     if (psql(`select phase from cooperations where id='${caseId}'`) !== 'offered') throw new Error('penawaran tidak tersimpan');
+    if (psql(`select data->'offer'->>'paymentMode' from cooperations where id='${caseId}'`) !== 'direct') throw new Error('penawaran akun nyata tidak memakai transfer langsung');
     ok('pelaku membalas dan mengirim penawaran dari perangkatnya sendiri');
+    ok('akun nyata tidak menawarkan Dana Amanah simulasi; penawaran memakai transfer langsung');
 
     // ---------- Keluarga menyetujui ----------
     await hard(c, 'planner/alur?case=' + encodeURIComponent(caseId));
@@ -181,6 +185,23 @@ let n = 0; const ok = m => { n++; console.log('PASS', m); };
     const ph = psql(`select phase from cooperations where id='${caseId}'`);
     if (!['active', 'running'].includes(ph)) throw new Error('fase setelah dua persetujuan: ' + ph);
     ok('kedua pihak menyetujui dari perangkat masing-masing (fase ' + ph + ')');
+
+    // ---------- Sengketa dan mediasi oleh peninjau ----------
+    await hard(c, 'planner/alur?case=' + encodeURIComponent(caseId));
+    await c.getByText('Masalah, mediasi, atau pembatalan').click();
+    await c.getByLabel('Catatan alur', { exact: true }).fill('Jadwal hari kedua belum sesuai kesepakatan keluarga.');
+    await click(c, 'Ajukan sengketa');
+    await c.waitForTimeout(1000);
+    if (psql(`select phase from cooperations where id='${caseId}'`) !== 'disputed') throw new Error('sengketa tidak tersimpan');
+    ok('keluarga mengajukan sengketa; tersimpan di server');
+    await hard(a, 'admin/alur?case=' + encodeURIComponent(caseId));
+    await phase(a, 'Sengketa; menunggu mediasi');
+    await a.getByLabel('Catatan alur', { exact: true }).fill('Mediasi: kedua pihak sepakat jadwal hari kedua dimajukan satu jam.');
+    await click(a, 'Catat mediasi dan lanjutkan tahap sebelumnya');
+    await a.waitForTimeout(1000);
+    if (await a.getByText(/baru saja diperbarui pihak lain/).count()) throw new Error('mediasi peninjau ditolak server');
+    if (psql(`select phase from cooperations where id='${caseId}'`) !== ph) throw new Error('mediasi tidak mengembalikan tahap sebelum sengketa');
+    ok('peninjau mencatat mediasi dari perangkatnya; kerja sama kembali ke tahap ' + ph);
 
     // ---------- RLS: pelaku lain tidak melihat ----------
     if (psql(`select count(*) from cooperations`) !== '1') throw new Error('jumlah kerja sama tak terduga');
@@ -227,6 +248,20 @@ let n = 0; const ok = m => { n++; console.log('PASS', m); };
     const guests = await c2.evaluate(() => localStorage.getItem('vaksara-planner-guests-v1'));
     if (!/Keluarga Uji/.test(guests || '')) throw new Error('data tamu tidak terbawa ke perangkat lain');
     ok('data rencana tersimpan per akun dan terbuka di perangkat lain');
+
+    // ---------- Profil yang diubah setelah disetujui ditinjau ulang ----------
+    await hard(v, 'vendor/profil');
+    await v.getByText('Terverifikasi & tampil', { exact: true }).waitFor();
+    await v.getByLabel('Deskripsi layanan', { exact: true }).fill('Pemandu adat dan perias untuk mappacci, akad, dan resepsi Bugis-Makassar di Makassar dan Gowa. Kini juga melayani Maros.');
+    await click(v, 'Simpan perubahan');
+    await v.getByText(/disembunyikan sementara sampai peninjau menyetujui ulang/).first().waitFor();
+    if (psql("select review_status from vendor_listings where name='Sanggar Uji Batara'") !== 'pending') throw new Error('profil yang diubah tetap berstatus disetujui');
+    if (psql("select identity_ok and culture_ok and consent_ok from vendor_listings where name='Sanggar Uji Batara'") !== 't') throw new Error('hasil pemeriksaan lama hilang');
+    ok('profil yang diubah setelah disetujui kembali menunggu peninjauan; hasil pemeriksaan lama tersimpan');
+    { const anon = await device(); await anon.goto(base + 'jelajahi'); await anon.reload(); await anon.waitForLoadState('networkidle'); await anon.waitForTimeout(1200);
+      if (await anon.getByText('Sanggar Uji Batara').count()) throw new Error('profil yang menunggu peninjauan ulang masih tampil publik');
+      if (await anon.getByText('Profil contoh', { exact: true }).count()) throw new Error('profil contoh tampil kepada pengunjung umum di server nyata');
+      ok('pengunjung umum tidak melihat profil yang ditinjau ulang maupun profil contoh'); }
 
     // ---------- Keluar ----------
     await c2.evaluate(() => { location.hash = '#/planner/kerjasama'; });

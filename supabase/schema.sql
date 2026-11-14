@@ -85,7 +85,8 @@ create table if not exists public.vendor_listings (
 create unique index if not exists vendor_listings_name_key on public.vendor_listings (lower(name));
 
 -- Hasil peninjauan hanya dapat diubah admin. Perubahan profil oleh pelaku mengembalikan status ke "pending"
--- bila sebelumnya ditolak, agar dapat ditinjau ulang.
+-- bila sebelumnya ditolak, atau bila profil yang sudah disetujui mengubah isi yang diperiksa peninjau
+-- (nama, kategori, wilayah, deskripsi, kontak), agar verifikasi tidak dapat dilewati setelah lolos sekali.
 create or replace function public.guard_listing() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
@@ -97,7 +98,20 @@ begin
     else
       new.identity_ok := old.identity_ok; new.culture_ok := old.culture_ok; new.consent_ok := old.consent_ok;
       new.review_note := old.review_note;
-      new.review_status := case when old.review_status = 'rejected' then 'pending' else old.review_status end;
+      if old.review_status = 'rejected' then
+        new.review_status := 'pending';
+      elsif old.review_status = 'approved' and (
+        new.name is distinct from old.name or new.category is distinct from old.category or
+        new.area is distinct from old.area or new.description is distinct from old.description or
+        new.whatsapp is distinct from old.whatsapp or new.instagram is distinct from old.instagram or
+        new.tiktok is distinct from old.tiktok or new.facebook is distinct from old.facebook) then
+        new.review_status := 'pending';
+        -- Hasil pemeriksaan lama dipertahankan agar kerja sama yang sedang berjalan tidak terhenti;
+        -- profil tersembunyi dari direktori dan permintaan baru sampai peninjau menyetujui ulang.
+        new.review_note := 'Profil diubah setelah disetujui; menunggu peninjauan ulang.';
+      else
+        new.review_status := old.review_status;
+      end if;
     end if;
   end if;
   return new;
@@ -167,8 +181,10 @@ create policy coop_insert on public.cooperations for insert to authenticated
   with check (couple_id = auth.uid() and exists (
     select 1 from public.vendor_listings v where v.id = vendor_id and v.published and v.review_status = 'approved'));
 drop policy if exists coop_update on public.cooperations;
+-- Peninjau (is_admin) perlu menulis untuk mencatat mediasi sengketa.
 create policy coop_update on public.cooperations for update to authenticated
-  using (couple_id = auth.uid() or vendor_id = auth.uid()) with check (couple_id = auth.uid() or vendor_id = auth.uid());
+  using (couple_id = auth.uid() or vendor_id = auth.uid() or public.is_admin())
+  with check (couple_id = auth.uid() or vendor_id = auth.uid() or public.is_admin());
 
 -- ============ PERMINTAAN TERBUKA (keluarga memasang, pelaku menanggapi) ============
 create table if not exists public.open_requests (

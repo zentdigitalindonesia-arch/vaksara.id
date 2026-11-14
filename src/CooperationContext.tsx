@@ -47,7 +47,10 @@ export function CooperationProvider({ children }: { children: ReactNode }) {
       vendorIds.current = new Map(listed.map(l => [l.name, l.id]));
       stamps.current = new Map(rows.map(r => [r.id, r.updated_at]));
       coupleNames.current = new Map(rows.map(r => [r.id, r.couple_name]));
-      const approved = listing?.review_status === "approved";
+      // Profil yang diubah setelah disetujui kembali "pending" untuk ditinjau ulang. Kerja sama yang sudah berjalan
+      // tetap dapat dilanjutkan bila pemeriksaan terakhir lengkap; profil yang ditolak tidak dapat bertindak.
+      const checked = Boolean(listing?.identity_ok && listing.culture_ok && listing.consent_ok);
+      const approved = listing?.review_status === "approved" || (listing?.review_status === "pending" && checked);
       const flow: Flow = {
         schema: 1,
         accounts: {
@@ -98,6 +101,10 @@ export function CooperationProvider({ children }: { children: ReactNode }) {
     const event: FlowAction = { ...action, id: action.id ?? crypto.randomUUID(), time: new Date().toISOString() };
     if (live && loadingRef.current) { commit({ ...latest.current, error: "Data kerja sama masih dimuat dari server. Tunggu sebentar lalu ulangi." }); return null; }
     if (live && (event.type === "register" || event.type === "review_vendor")) { commit({ ...latest.current, error: "Di akun VAKSARA, pendaftaran dan peninjauan dilakukan melalui profil akun dan peninjau resmi." }); return null; }
+    // Dana Amanah masih simulasi: di akun nyata tidak boleh ada setoran "ditahan" tanpa dana sungguhan,
+    // karena setoran simulasi langsung membuka tahap pelaksanaan. Dibuka setelah mitra pembayaran berizin aktif.
+    if (live && event.type === "offer" && event.data?.paymentMode === "amanah") { commit({ ...latest.current, error: "Dana Amanah belum tersedia di akun nyata. Gunakan transfer langsung." }); return null; }
+    if (live && event.type === "payment" && latest.current.flow.cases.some(c => c.id === event.caseId && c.offer?.paymentMode === "amanah")) { commit({ ...latest.current, error: "Dana Amanah belum tersedia di akun nyata. Minta pelaku mengirim penawaran baru dengan transfer langsung." }); return null; }
     try {
       const current = latest.current.flow;
       // Akun nyata: pihak lain berada di perangkatnya sendiri. Untuk validasi, isi identitas pihak lain per kerja sama
@@ -106,7 +113,9 @@ export function CooperationProvider({ children }: { children: ReactNode }) {
       if (live && event.caseId) {
         const item = current.cases.find(c => c.id === event.caseId);
         if (item) {
-          const approved = (current.catalog ?? []).includes(item.vendor);
+          // Kerja sama yang sudah ada hanya dapat dibuat untuk pelaku yang disetujui (aturan coop_insert), jadi tahap
+          // lanjutan tetap berjalan selama pelaku ditinjau ulang. Mengirim permintaan baru tetap mensyaratkan pelaku tampil di katalog.
+          const approved = event.type === "submit" ? (current.catalog ?? []).includes(item.vendor) : true;
           base = {
             ...current,
             accounts: { couple: current.accounts.couple ?? { name: coupleNames.current.get(item.id) || "Keluarga", email: "", phone: "", demoOnly: true }, vendor: current.accounts.vendor ?? (approved ? { name: item.vendor, email: "", phone: "", demoOnly: true } : null) },

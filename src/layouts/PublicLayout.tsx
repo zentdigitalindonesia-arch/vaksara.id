@@ -32,7 +32,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
             <span className="inline-flex items-center gap-1 rounded-full border border-sand/40 bg-sand/10 px-1.5 py-0.5 text-[12px] font-bold uppercase tracking-wider text-sand">
               <Sparkles className="h-2.5 w-2.5" /> {liveEnabled ? "VAKSARA 2.0" : "Prototipe 2.0"}
             </span>
-            <span className="min-w-0 flex-1 truncate text-cream/75">{liveEnabled ? "Platform aktif. Kurasi dan verifikasi vendor sedang berjalan; sementara itu, jelajahi direktori vendor Makassar." : "Identitas, pembayaran, dan tanda tangan elektronik ditampilkan sebagai simulasi."}</span>
+            <span className="min-w-0 flex-1 truncate text-cream/75">{liveEnabled ? "Akun dan data tersimpan di server. Dana Amanah dan tanda tangan elektronik masih tahap uji." : "Identitas, pembayaran, dan tanda tangan elektronik ditampilkan sebagai simulasi."}</span>
           </p>
           <button onClick={() => navigate("pusat-bantuan")} className="hidden shrink-0 text-[14px] font-semibold text-sand hover:text-cream sm:block">
             Pusat Bantuan
@@ -64,7 +64,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
             <Button variant="ghost" size="sm" onClick={() => (live ? navigate(home) : setAuthMode("masuk"))}>
               {live ? "Ruang saya" : "Masuk"}
             </Button>
-            {!live && !liveEnabled && <Button variant="secondary" size="sm" className="whitespace-nowrap" onClick={() => navigate("demo")}>
+            {!live && <Button variant="secondary" size="sm" className="whitespace-nowrap" onClick={() => navigate("demo")}>
               Coba demo
             </Button>}
             <Button size="sm" className="whitespace-nowrap" onClick={startPlan} trailing={<ArrowRight className="h-3.5 w-3.5" />}>
@@ -111,7 +111,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
             <div className="mt-2 grid grid-cols-2 gap-2 border-t border-line pt-3">
               <Button variant="secondary" onClick={() => { if (live) navigate(home); else setAuthMode("masuk"); setMobileOpen(false); }}>{live ? "Ruang saya" : "Masuk"}</Button>
               <Button onClick={() => { setAuthMode("daftar"); setMobileOpen(false); }}>Daftar</Button>
-              {!live && !liveEnabled && <Button className="col-span-2" variant="gold" onClick={() => { navigate("demo"); setMobileOpen(false); }}>Coba demo terpandu</Button>}
+              {!live && <Button className="col-span-2" variant="gold" onClick={() => { navigate("demo"); setMobileOpen(false); }}>Coba demo terpandu</Button>}
             </div>
           </div>
         )}
@@ -175,7 +175,7 @@ export function Footer({ onAuth }: { onAuth?: (m: "masuk" | "daftar") => void })
           />
         </div>
         <div className="mt-10 flex flex-col gap-3 border-t border-line pt-5 text-[14px] text-muted md:flex-row md:items-center md:justify-between">
-          <p>© 2026 VAKSARA. {liveEnabled ? "Warisan dalam setiap kisah." : "Prototipe produk."} Makassar, Sulawesi Selatan.</p>
+          <p>© 2026 VAKSARA. Prototipe produk. Makassar, Sulawesi Selatan.</p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <button onClick={() => goAuth("masuk")} className="hover:text-ink">Masuk</button>
             <button onClick={() => goAuth("daftar")} className="hover:text-ink">Daftar</button>
@@ -185,7 +185,7 @@ export function Footer({ onAuth }: { onAuth?: (m: "masuk" | "daftar") => void })
           </div>
         </div>
         <p className="mt-4 rounded-lg border border-line/80 bg-cream/50 px-3 py-2 text-[13px] leading-relaxed text-muted">
-          {liveEnabled ? "VAKSARA mencatat setiap kesepakatan, pembayaran, dan serah terima yang disetujui kedua pihak. VAKSARA tidak menyimpan dana di rekeningnya sendiri dan tidak memberikan putusan hukum." : <>Catatan prototipe: seluruh data keuangan, identitas, dan tanda tangan bersifat ilustratif. VAKSARA tidak menyimpan dana di rekeningnya sendiri dan tidak memberikan putusan hukum. Dana Amanah direncanakan melalui rekening penampung mitra pembayaran berizin dan hanya cair dengan persetujuan dua pihak; integrasi pembayaran dan tanda tangan elektronik bersertifikat menyusul pada tahap berikutnya.</>}
+          Catatan prototipe: seluruh data keuangan, identitas, dan tanda tangan bersifat ilustratif. VAKSARA tidak menyimpan dana di rekeningnya sendiri dan tidak memberikan putusan hukum. Dana Amanah direncanakan melalui rekening penampung mitra pembayaran berizin dan hanya cair dengan persetujuan dua pihak; integrasi pembayaran dan tanda tangan elektronik bersertifikat menyusul pada tahap berikutnya.
         </p>
       </div>
     </footer>

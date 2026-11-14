@@ -13,7 +13,7 @@ import { friendly, q, rest } from "@/utils/supabase";
 export const listingCategories = [...openRequestCategories, "Sanggar seni & tari", "Rumah pengantin / WO", "Lainnya"];
 const statusInfo: Record<Listing["review_status"], { label: string; tone: "sand" | "green" | "red"; text: string }> = {
   pending: { label: "Menunggu peninjauan", tone: "sand", text: "Peninjau VAKSARA memeriksa identitas, konteks budaya, dan persetujuan publikasi. Profil tampil di direktori setelah disetujui." },
-  approved: { label: "Terverifikasi & tampil", tone: "green", text: "Profil Anda tampil di direktori. Keluarga dapat mengirim permintaan dan Anda dapat menanggapi permintaan terbuka." },
+  approved: { label: "Terverifikasi & tampil", tone: "green", text: "Profil Anda tampil di direktori. Keluarga dapat mengirim permintaan dan Anda dapat menanggapi permintaan terbuka. Bila nama, kategori, wilayah, deskripsi, atau kontak diubah, profil disembunyikan sementara dan ditinjau ulang; kerja sama yang sedang berjalan tetap dapat dilanjutkan." },
   rejected: { label: "Perlu perbaikan", tone: "red", text: "Perbaiki profil sesuai catatan peninjau lalu simpan. Profil otomatis diajukan ulang." },
 };
 
@@ -56,7 +56,7 @@ export function LiveVendorProfile() {
     if (!/^(\+62|62|0)8\d{7,12}$/.test(f.whatsapp.replace(/[\s().-]/g, ""))) return setError("Nomor WhatsApp tidak valid.");
     const p = price.replace(/\D/g, "");
     setBusy(true); setError("");
-    try { await saveListing({ ...f, name: f.name.trim(), description: f.description.trim(), price_from: p ? Number(p) : null, whatsapp: f.whatsapp.replace(/[\s().-]/g, ""), instagram: f.instagram.trim().replace(/^@/, ""), tiktok: f.tiktok.trim().replace(/^@/, ""), facebook: f.facebook.trim() }); toast(listing ? "Profil layanan diperbarui." : "Profil layanan tersimpan dan diajukan untuk peninjauan.", "success", "Tersimpan"); reload(); }
+    try { const saved = await saveListing({ ...f, name: f.name.trim(), description: f.description.trim(), price_from: p ? Number(p) : null, whatsapp: f.whatsapp.replace(/[\s().-]/g, ""), instagram: f.instagram.trim().replace(/^@/, ""), tiktok: f.tiktok.trim().replace(/^@/, ""), facebook: f.facebook.trim() }); toast(!listing ? "Profil layanan tersimpan dan diajukan untuk peninjauan." : listing.review_status === "approved" && saved.review_status === "pending" ? "Perubahan tersimpan. Profil disembunyikan sementara sampai peninjau menyetujui ulang." : "Profil layanan diperbarui.", "success", "Tersimpan"); reload(); }
     catch (e) { setError(friendly(e)); } finally { setBusy(false); }
   };
   const status = listing ? statusInfo[listing.review_status] : null;
