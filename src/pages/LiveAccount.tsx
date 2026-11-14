@@ -12,7 +12,7 @@ import { useCooperation } from "@/CooperationContext";
 import { formatIDR, openRequestCategories } from "@/data";
 import { instagramUrl, waNumber } from "@/data-public-vendors";
 import { ceremonies, ceremonyLabel } from "@/utils/ceremonies";
-import { friendly, q, rest } from "@/utils/supabase";
+import { escrowEnabled, friendly, q, rest } from "@/utils/supabase";
 
 export const listingCategories = [...openRequestCategories, "Sanggar seni & tari", "Rumah pengantin / WO", "Lainnya"];
 const statusInfo: Record<Listing["review_status"], { label: string; tone: "sand" | "green" | "red"; text: string }> = {
@@ -102,7 +102,7 @@ export function LiveVendorProfile() {
       </Card>
     </div>
     <VendorDocumentsCard />
-    <BankAccountCard hasListing={Boolean(listing)} />
+    {escrowEnabled && <BankAccountCard hasListing={Boolean(listing)} />}
   </>;
 }
 

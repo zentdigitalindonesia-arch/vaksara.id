@@ -438,6 +438,7 @@ export async function handle(req: Request, env: Env): Promise<Response> {
       if (type === "payment" && isAmanah(row.data)) throw new Fail(400, "Perjanjian ini dibayar lewat tagihan VAKSARA (Xendit), bukan catatan transfer manual.");
       if (type === "gateway_paid") throw new Fail(403, "Hanya sistem pembayaran yang dapat mencatat pembayaran gateway.");
       if (type === "offer" && (data.paymentMode === "amanah" || data.paymentMode === "split")) {
+        if (!env("XENDIT_SECRET_KEY")) throw new Fail(400, "Dana Amanah belum diaktifkan di VAKSARA. Gunakan transfer langsung.");
         const [bank] = await db<BankAccount[]>(`vendor_bank_accounts?select=status&vendor_id=eq.${enc(row.vendor_id)}`);
         if (bank?.status !== "approved") throw new Fail(400, "Untuk Dana Amanah, lengkapi rekening pencairan dan buku rekening di halaman Profil, lalu tunggu disetujui peninjau.");
       }

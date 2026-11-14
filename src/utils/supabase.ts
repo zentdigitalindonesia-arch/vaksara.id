@@ -2,6 +2,8 @@
 // Kunci publik (anon/publishable) aman berada di browser: akses data dibatasi Row Level Security di database.
 const URL_ = (import.meta.env.VITE_SUPABASE_URL ?? "").replace(/\/+$/, "");
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY ?? "";
+/** Dana Amanah sungguhan (Xendit) di akun nyata. Nyalakan dengan VITE_DANA_AMANAH=1 di Vercel setelah Xendit terpasang. */
+export const escrowEnabled = import.meta.env.VITE_DANA_AMANAH === "1";
 export const liveEnabled = Boolean(URL_ && KEY);
 const SESSION = "vx-auth-v1";
 
