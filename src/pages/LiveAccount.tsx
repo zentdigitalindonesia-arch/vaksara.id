@@ -5,6 +5,7 @@ import { LiveAuthForm } from "@/components/LiveAuth";
 import { ReviewerDocuments, VendorDocumentsCard } from "@/components/VerificationDocs";
 import PublicDirectory from "@/pages/PublicDirectory";
 import { DataRequestsAdmin } from "@/pages/Privacy";
+import { BankAccountCard, BankReview, PayoutsAdmin } from "@/components/BankAccount";
 import { useLive, type Listing, type ListingInput } from "@/LiveContext";
 import { useApp } from "@/store";
 import { useCooperation } from "@/CooperationContext";
@@ -101,6 +102,7 @@ export function LiveVendorProfile() {
       </Card>
     </div>
     <VendorDocumentsCard />
+    <BankAccountCard hasListing={Boolean(listing)} />
   </>;
 }
 
@@ -169,6 +171,7 @@ export function LiveScreening() {
         <div className="mt-2 flex flex-wrap gap-2">{l.whatsapp && <a className="inline-flex items-center gap-1 text-[13px] font-semibold text-ink underline" href={`https://wa.me/${waNumber(l.whatsapp)}`} target="_blank" rel="noreferrer">Hubungi via WhatsApp <ExternalLink className="h-3 w-3" /></a>}</div>
         <ReviewHistory listingId={l.id} version={rows.length + (l.updated_at ? Date.parse(l.updated_at) : 0)} />
         <ReviewerDocuments userId={l.id} />
+        <BankReview vendorId={l.id} listingName={l.name} />
         <div className="mt-3 grid gap-1 sm:grid-cols-3">
           <Checkbox checked={k.identity} onChange={v => setChecks({ ...checks, [l.id]: { ...k, identity: v } })} label="Identitas diperiksa" />
           <Checkbox checked={k.culture} onChange={v => setChecks({ ...checks, [l.id]: { ...k, culture: v } })} label="Konteks budaya sesuai" />
@@ -178,6 +181,7 @@ export function LiveScreening() {
         <div className="mt-3 flex flex-wrap gap-2"><Button size="sm" onClick={() => decide(l, "approved")}>Setujui & tampilkan</Button><Button size="sm" variant="secondary" onClick={() => decide(l, "rejected")}>Minta perbaikan</Button></div>
       </Card>;
     })}</div>
+    <PayoutsAdmin />
     <DataRequestsAdmin />
   </>;
 }

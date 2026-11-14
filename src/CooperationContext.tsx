@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { initialFlow, transitionFlow, validFlow, type Cooperation, type Flow, type FlowAction } from "@/utils/cooperation";
+import { initialFlow, isAmanah, transitionFlow, validFlow, type Cooperation, type Flow, type FlowAction } from "@/utils/cooperation";
 import { demoCooperations } from "@/utils/demo-cooperations";
 import { practitioners } from "@/data";
 import { liveBoot, liveUserId } from "@/LiveContext";
@@ -124,10 +124,8 @@ export function CooperationProvider({ children }: { children: ReactNode }) {
     const event: FlowAction = { ...action, id: action.id ?? crypto.randomUUID(), time: new Date().toISOString() };
     if (live && loadingRef.current) { commit({ ...latest.current, error: "Data kerja sama masih dimuat dari server. Tunggu sebentar lalu ulangi." }); return null; }
     if (live && (event.type === "register" || event.type === "review_vendor")) { commit({ ...latest.current, error: "Di akun VAKSARA, pendaftaran dan peninjauan dilakukan melalui profil akun dan peninjau resmi." }); return null; }
-    // Dana Amanah masih simulasi: di akun nyata tidak boleh ada setoran "ditahan" tanpa dana sungguhan,
-    // karena setoran simulasi langsung membuka tahap pelaksanaan. Dibuka setelah mitra pembayaran berizin aktif.
-    if (live && event.type === "offer" && event.data?.paymentMode === "amanah") { commit({ ...latest.current, error: "Dana Amanah belum tersedia di akun nyata. Gunakan transfer langsung." }); return null; }
-    if (live && event.type === "payment" && latest.current.flow.cases.some(c => c.id === event.caseId && c.offer?.paymentMode === "amanah")) { commit({ ...latest.current, error: "Dana Amanah belum tersedia di akun nyata. Minta pelaku mengirim penawaran baru dengan transfer langsung." }); return null; }
+    // Akun nyata: Dana Amanah dibayar lewat tagihan Xendit (pay_invoice), bukan catatan setoran.
+    if (live && event.type === "payment" && latest.current.flow.cases.some(c => c.id === event.caseId && isAmanah(c))) { commit({ ...latest.current, error: "Perjanjian ini dibayar lewat tagihan Dana Amanah (Xendit). Gunakan tombol Bayar di bagian Pembayaran." }); return null; }
     try {
       const current = latest.current.flow;
       // Akun nyata: pihak lain berada di perangkatnya sendiri. Untuk validasi, isi identitas pihak lain per kerja sama

@@ -2,30 +2,15 @@
 // Pihak yang bertindak ditentukan dari akun yang masuk (bukan dari isian browser), lalu langkah diperiksa dengan
 // mesin aturan yang sama dengan aplikasi (src/utils/cooperation.ts). Berkas ini sumbernya; index.ts dibuat oleh
 // scripts/build-edge-functions.mjs agar dapat ditempel utuh di editor Supabase.
-import { transitionFlow, type Account, type Actor, type Cooperation, type Flow, type FlowAction } from "../../../src/utils/cooperation.ts";
+import { amanahShare, heldPart, isAmanah, reservedTotal, transitionFlow, type Actor, type Flow, type FlowAction } from "../../../src/utils/cooperation.ts";
+import { account, CORS, database, enc, Fail, flushVendorPayouts, json, MIN_NET, paymentFee, queuePayout, sendPayout, xendit, type BankAccount, type Env, type Payout, type Row } from "../_shared/escrow.ts";
 
-type Env = (key: string) => string;
-type Row = { id: string; couple_id: string; vendor_id: string; couple_name: string; vendor_name: string; phase: string; data: Cooperation; updated_at: string };
 type Profile = { id: string; role: "couple" | "vendor"; full_name: string; is_admin: boolean };
 type Listing = { id: string; name: string; review_status: string; published: boolean; identity_ok: boolean; culture_ok: boolean; consent_ok: boolean };
 type Body = { caseId?: string; vendorId?: string; requestId?: string; vendorName?: string; actor?: Actor; action?: { type?: string; id?: string; data?: Record<string, unknown> } };
-
-const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info", "Access-Control-Allow-Methods": "POST, OPTIONS" };
-const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
-class Fail extends Error { constructor(readonly status: number, message: string) { super(message); } }
-const account = (name: string): Account => ({ name, email: "", phone: "", demoOnly: true });
-const enc = encodeURIComponent;
-
-function database(base: string, key: string) {
-  const headers: Record<string, string> = { apikey: key, "Content-Type": "application/json", ...(key.startsWith("sb_") ? {} : { Authorization: `Bearer ${key}` }) };
-  return async <T>(path: string, init: { method?: string; body?: unknown; prefer?: string } = {}): Promise<T> => {
-    const res = await fetch(`${base}/rest/v1/${path}`, { method: init.method ?? "GET", headers: { ...headers, ...(init.prefer ? { Prefer: init.prefer } : {}) }, body: init.body === undefined ? undefined : JSON.stringify(init.body) });
-    const text = await res.text();
-    let data: unknown = null; try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-    if (!res.ok) { const d = (data ?? {}) as Record<string, unknown>; throw new Fail(res.status >= 500 ? 502 : 400, String(d.message ?? d.hint ?? `HTTP ${res.status}`)); }
-    return data as T;
-  };
-}
+type EscrowPayment = { id: string; case_id: string; amount: number; fee: number; held: number; status: string; invoice_url: string | null; expires_at: string | null };
+const BANK = /^ID_[A-Z0-9_]{2,30}$/, ACCOUNT = /^[0-9]{5,20}$/;
+const OPEN_PHASES = ["active", "running", "handover", "revision", "accepted"];
 
 export async function handle(req: Request, env: Env): Promise<Response> {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
@@ -45,8 +30,6 @@ export async function handle(req: Request, env: Env): Promise<Response> {
     if (!/^[a-z_]{2,40}$/.test(type)) throw new Fail(400, "Tindakan tidak dikenal.");
     if (!/^[A-Za-z0-9_-]{8,80}$/.test(id)) throw new Fail(400, "Kode tindakan tidak valid.");
     if (typeof data !== "object" || Array.isArray(data)) throw new Fail(400, "Isian tindakan tidak valid.");
-    // Dana Amanah masih simulasi: tidak dibuka untuk akun nyata sampai mitra pembayaran berizin aktif.
-    if (type === "offer" && data.paymentMode === "amanah") throw new Fail(400, "Dana Amanah belum tersedia di akun nyata. Gunakan transfer langsung.");
 
     const db = database(base, service);
     const [me] = await db<Profile[]>(`profiles?select=id,role,full_name,is_admin&id=eq.${enc(user.id)}`);
@@ -87,14 +70,79 @@ export async function handle(req: Request, env: Env): Promise<Response> {
       return json(200, { row });
     }
 
+    // ---------- Peninjau: kirim / kirim ulang pencairan, setujui rekening lalu kirim yang tertunda ----------
+    if (type === "admin_payout") {
+      if (!me.is_admin) throw new Fail(403, "Khusus peninjau VAKSARA.");
+      const payout = await sendPayout(db, env, String(data.payoutId ?? ""), { admin: true });
+      if (!payout) throw new Fail(404, "Pencairan tidak ditemukan atau sedang diproses.");
+      return json(200, { payout });
+    }
+    if (type === "flush_vendor_payouts") {
+      if (!me.is_admin) throw new Fail(403, "Khusus peninjau VAKSARA.");
+      return json(200, { sent: await flushVendorPayouts(db, env, String(data.vendorId ?? "")) });
+    }
+
+    // ---------- Keluarga: isi rekening tujuan refund Dana Amanah (diperiksa peninjau sebelum dikirim) ----------
+    if (type === "refund_account") {
+      const [p] = await db<Payout[]>(`escrow_payouts?select=*&id=eq.${enc(String(data.payoutId ?? ""))}`);
+      if (!p || p.couple_id !== me.id || p.recipient !== "couple") throw new Fail(404, "Refund tidak ditemukan.");
+      if (!["awaiting_account", "awaiting_admin", "failed"].includes(p.status)) throw new Fail(400, "Refund ini sudah diproses.");
+      const bank = String(data.bankCode ?? ""), number = String(data.accountNumber ?? "").replace(/\s+/g, ""), holder = String(data.holderName ?? "").trim();
+      if (!BANK.test(bank) || !ACCOUNT.test(number) || holder.length < 3 || holder.length > 100) throw new Fail(400, "Lengkapi bank, nomor rekening (angka), dan nama pemilik rekening.");
+      const [row] = await db<Payout[]>(`escrow_payouts?id=eq.${enc(p.id)}`, { method: "PATCH", body: { bank_code: bank, account_number: number, holder_name: holder, status: "awaiting_admin", failure: "", updated_at: time }, prefer: "return=representation" });
+      return json(200, { payout: row });
+    }
+
     const caseId = String(body.caseId ?? "");
+
+    // ---------- Keluarga: bayar lewat tagihan Xendit (Dana Amanah penuh atau sebagian) ----------
+    if (type === "pay_invoice") {
+      const [row] = await db<Row[]>(`cooperations?select=*&id=eq.${enc(caseId)}`);
+      if (!row) throw new Fail(404, "Kerja sama tidak ditemukan.");
+      if (row.couple_id !== me.id) throw new Fail(403, "Hanya keluarga dalam kerja sama ini yang dapat membayar.");
+      const item = row.data;
+      if (!isAmanah(item) || !item.offer) throw new Fail(400, "Perjanjian ini memakai transfer langsung ke pelaku.");
+      if (!OPEN_PHASES.includes(row.phase)) throw new Fail(400, "Pembayaran belum dibuka atau sedang dihentikan (mis. selama sengketa).");
+      const amount = Number(data.amount);
+      if (!Number.isSafeInteger(amount) || amount < MIN_NET) throw new Fail(400, `Nominal minimal ${MIN_NET.toLocaleString("id-ID")} rupiah, bilangan bulat.`);
+      // Tagihan lama yang belum dibayar ikut dihitung agar total tidak melebihi nilai perjanjian.
+      const pending = await db<EscrowPayment[]>(`escrow_payments?select=id,amount,expires_at,status&case_id=eq.${enc(row.id)}&status=eq.pending`);
+      const open = pending.filter(p => !p.expires_at || Date.parse(p.expires_at) > Date.now());
+      if (amount + reservedTotal(item) + open.reduce((a, p) => a + p.amount, 0) > item.offer.price) throw new Fail(400, "Nominal melebihi sisa nilai perjanjian (termasuk tagihan yang belum dibayar).");
+      const [bank] = await db<BankAccount[]>(`vendor_bank_accounts?select=status&vendor_id=eq.${enc(row.vendor_id)}`);
+      if (amanahShare(item.offer) < 100 && bank?.status !== "approved") throw new Fail(400, "Rekening pencairan pelaku belum disetujui peninjau, jadi bagian yang langsung diteruskan belum dapat dikirim. Coba lagi nanti.");
+      const fee = paymentFee(env), held = heldPart(item.offer, amount);
+      await db("escrow_payments", { method: "POST", body: { id, case_id: row.id, couple_id: row.couple_id, vendor_id: row.vendor_id, amount, fee, held, mode: item.offer.paymentMode }, prefer: "return=minimal" });
+      const site = (env("SITE_URL") || "https://vaksara.id").replace(/\/+$/, "");
+      const methods = (env("XENDIT_PAYMENT_METHODS") || "BCA,BNI,BRI,MANDIRI,PERMATA,BSI").split(",").map(m => m.trim()).filter(Boolean);
+      try {
+        const inv = await xendit(env)<{ id: string; invoice_url: string; expiry_date?: string }>("/v2/invoices", { method: "POST", body: {
+          external_id: id, amount: amount + fee, currency: "IDR", invoice_duration: 86400,
+          description: `VAKSARA · ${row.vendor_name} · ${item.offer.paymentMode === "amanah" ? "Dana Amanah" : `Dana Amanah ${amanahShare(item.offer)}%`}`.slice(0, 250),
+          fees: fee > 0 ? [{ type: "Biaya pembayaran", value: fee }] : undefined,
+          payment_methods: methods.length ? methods : undefined,
+          success_redirect_url: `${site}/#/planner/alur?case=${enc(row.id)}`, failure_redirect_url: `${site}/#/planner/alur?case=${enc(row.id)}`,
+        } });
+        const [payment] = await db<EscrowPayment[]>(`escrow_payments?id=eq.${enc(id)}`, { method: "PATCH", body: { invoice_id: inv.id, invoice_url: inv.invoice_url, expires_at: inv.expiry_date ?? new Date(Date.now() + 86400e3).toISOString() }, prefer: "return=representation" });
+        return json(200, { payment });
+      } catch (e) {
+        await db(`escrow_payments?id=eq.${enc(id)}`, { method: "PATCH", body: { status: "failed" }, prefer: "return=minimal" });
+        throw e;
+      }
+    }
+
     for (let attempt = 0; attempt < 2; attempt++) {
       const [row] = await db<Row[]>(`cooperations?select=*&id=eq.${enc(caseId)}`);
       if (!row) throw new Fail(404, "Kerja sama tidak ditemukan.");
       const actor: Actor | null = row.couple_id === me.id ? "couple" : row.vendor_id === me.id ? "vendor" : me.is_admin ? "admin" : null;
       if (!actor) throw new Fail(403, "Anda bukan pihak dalam kerja sama ini.");
       if (body.actor && body.actor !== actor) throw new Fail(403, "Tindakan ini milik pihak lain.");
-      if (type === "payment" && row.data.offer?.paymentMode === "amanah") throw new Fail(400, "Dana Amanah belum tersedia di akun nyata. Minta pelaku mengirim penawaran baru dengan transfer langsung.");
+      if (type === "payment" && isAmanah(row.data)) throw new Fail(400, "Perjanjian ini dibayar lewat tagihan VAKSARA (Xendit), bukan catatan transfer manual.");
+      if (type === "gateway_paid") throw new Fail(403, "Hanya sistem pembayaran yang dapat mencatat pembayaran gateway.");
+      if (type === "offer" && (data.paymentMode === "amanah" || data.paymentMode === "split")) {
+        const [bank] = await db<BankAccount[]>(`vendor_bank_accounts?select=status&vendor_id=eq.${enc(row.vendor_id)}`);
+        if (bank?.status !== "approved") throw new Fail(400, "Untuk Dana Amanah, lengkapi rekening pencairan dan buku rekening di halaman Profil, lalu tunggu disetujui peninjau.");
+      }
       const [listing] = await db<Listing[]>(`vendor_listings?select=id,name,review_status,published,identity_ok,culture_ok,consent_ok&id=eq.${enc(row.vendor_id)}`);
       const approved = Boolean(listing?.published && listing.review_status === "approved");
       // Profil yang ditinjau ulang setelah diubah tetap dapat melanjutkan kerja sama berjalan bila pemeriksaan terakhir lengkap;
@@ -109,11 +157,30 @@ export async function handle(req: Request, env: Env): Promise<Response> {
       };
       const item = transitionFlow(flow, { type, actor, caseId: row.id, id, time, data }).cases[0];
       const saved = await db<Row[]>(`cooperations?id=eq.${enc(row.id)}&updated_at=eq.${enc(row.updated_at)}`, { method: "PATCH", body: { phase: item.phase, data: item }, prefer: "return=representation" });
-      if (saved.length) return json(200, { row: saved[0] });
+      if (saved.length) {
+        await afterSave(db, env, row, saved[0], type, id);
+        return json(200, { row: saved[0] });
+      }
     }
     throw new Fail(409, "Kerja sama ini baru saja diperbarui pihak lain. Data terbaru sudah dimuat; silakan periksa lalu ulangi langkah Anda.");
   } catch (e) {
     if (e instanceof Fail) return json(e.status, { message: e.message });
     return json(400, { message: e instanceof Error ? e.message : "Tindakan ditolak." });
+  }
+}
+
+/** Dana keluar setelah langkah tersimpan: pencairan yang disetujui dua pihak, atau pembagian dana saat pembatalan disepakati. */
+async function afterSave(db: ReturnType<typeof database>, env: Env, before: Row, after: Row, type: string, id: string): Promise<void> {
+  if (!isAmanah(after.data)) return;
+  const base = { case_id: after.id, couple_id: after.couple_id, vendor_id: after.vendor_id };
+  if (type === "approve_release") {
+    const amount = (after.data.amanah?.released ?? 0) - (before.data.amanah?.released ?? 0);
+    await queuePayout(db, env, { ...base, id: `${after.id}-rel-${id}`, kind: "release", recipient: "vendor", gross: amount, note: "Pencairan Dana Amanah disetujui dua pihak" });
+  }
+  if (type === "approve_cancel" && after.phase === "cancelled") {
+    const refund = (after.data.amanah?.refunded ?? 0) - (before.data.amanah?.refunded ?? 0);
+    const rest = (after.data.amanah?.released ?? 0) - (before.data.amanah?.released ?? 0);
+    await queuePayout(db, env, { ...base, id: `${after.id}-refund-${id}`, kind: "refund", recipient: "couple", gross: refund, note: "Refund Dana Amanah sesuai kesepakatan pembatalan" });
+    await queuePayout(db, env, { ...base, id: `${after.id}-sisa-${id}`, kind: "remainder", recipient: "vendor", gross: rest, note: "Sisa Dana Amanah setelah pembatalan disepakati" });
   }
 }

@@ -4,16 +4,19 @@ export type Phase = "draft" | "inquiry" | "replied" | "offered" | "contract" | "
 export const phaseLabels: Record<Phase, string> = { draft: "Draf kebutuhan", inquiry: "Permintaan terkirim (demo)", replied: "Diskusi kebutuhan", offered: "Penawaran tersedia", contract: "Persetujuan versi perjanjian", active: "Perjanjian disepakati", running: "Pelaksanaan", handover: "Menunggu tinjauan BAST", revision: "Perbaikan diminta", accepted: "BAST diterima; periksa keuangan", completed: "Kerja sama ditutup", disputed: "Sengketa; menunggu mediasi", cancel_pending: "Usulan pembatalan", refund_due: "Pengembalian dana perlu dicatat", refund_sent: "Menunggu konfirmasi penerimaan refund", cancelled: "Dibatalkan", declined: "Permintaan ditolak" };
 export type Account = { name: string; email: string; phone: string; demoOnly: true };
 // paymentMode adalah bagian dari versi perjanjian, sehingga cara pembayaran ikut disetujui kedua pihak.
-// "amanah": dana disetor ke rekening penampung mitra pembayaran berizin dan hanya cair dengan persetujuan dua pihak.
-export type PaymentMode = "direct" | "amanah";
-export type Offer = { version: number; price: number; deposit: number; scope: string; terms: string; days: { date: string; location: string }[]; paymentMode?: PaymentMode };
-export type Payment = { id: string; amount: number; proof: string; status: "pending" | "confirmed" | "rejected"; via?: PaymentMode };
+// "direct": keluarga transfer langsung ke pelaku, pelaku mengonfirmasi (uang tidak lewat VAKSARA).
+// "amanah": seluruh pembayaran lewat payment gateway dan DITAHAN; cair hanya dengan persetujuan dua pihak.
+// "split": pembayaran lewat payment gateway; amanahPercent % ditahan, sisanya langsung diteruskan ke rekening pelaku.
+export type PaymentMode = "direct" | "amanah" | "split";
+export type Offer = { version: number; price: number; deposit: number; scope: string; terms: string; days: { date: string; location: string }[]; paymentMode?: PaymentMode; amanahPercent?: number };
+export type Payment = { id: string; amount: number; proof: string; status: "pending" | "confirmed" | "rejected"; via?: PaymentMode; held?: number };
 export type Amanah = { held: number; released: number; refunded: number; release?: { amount: number; by: "couple" | "vendor"; note: string } };
-export type Cooperation = { id: string; vendor: string; request: string; eventDate: string; phase: Phase; offer: Offer | null; offerVersions?: Offer[]; approvals: { couple: boolean; vendor: boolean }; payments: Payment[]; amanah?: Amanah; reply: string; evidence: string; reviewNote: string; resume?: Phase; cancellation?: { refund: number; couple: boolean; vendor: boolean; proof: string; fromDispute?: boolean }; history: { id: string; actor: Actor; action: string; time: string; version: number | null }[] };
+export type Cooperation = { id: string; vendor: string; request: string; eventDate: string; phase: Phase; offer: Offer | null; offerVersions?: Offer[]; approvals: { couple: boolean; vendor: boolean }; payments: Payment[]; amanah?: Amanah; reply: string; evidence: string; reviewNote: string; resume?: Phase; cancellation?: { refund: number; couple: boolean; vendor: boolean; proof: string; fromDispute?: boolean }; history: { id: string; actor: Actor | "system"; action: string; time: string; version: number | null }[] };
 // catalog: nama pelaku contoh yang sudah dipublikasikan di direktori demo; permintaan boleh dikirim kepada mereka,
 // tetapi hanya identitas vendor yang terdaftar di browser ini yang dapat merespons.
 export type Flow = { schema: 1; accounts: { couple: Account | null; vendor: Account | null }; vendorReview: { identity: boolean; culture: boolean; consent: boolean }; cases: Cooperation[]; catalog?: string[] };
-export type FlowAction = { type: string; actor: Actor; caseId?: string; id: string; time: string; data?: Record<string, unknown> };
+// "system": peristiwa dari payment gateway yang sudah diverifikasi server (bukan tindakan salah satu pihak).
+export type FlowAction = { type: string; actor: Actor | "system"; caseId?: string; id: string; time: string; data?: Record<string, unknown> };
 export const initialFlow = (): Flow => ({ schema: 1, accounts: { couple: null, vendor: null }, vendorReview: { identity: false, culture: false, consent: false }, cases: [] });
 const need = (condition: unknown, message: string): void => { if (!condition) throw new Error(message); };
 const text = (value: unknown, min = 1): string => { need(typeof value === "string" && value.trim().length >= min && value.length <= 2000, `Lengkapi teks minimal ${min} karakter (maksimal 2000).`); return (value as string).trim(); };
@@ -22,7 +25,14 @@ export const validDate = (value: unknown): value is string => typeof value === "
 export const confirmedTotal = (item: Cooperation): number => item.payments.filter(p => p.status === "confirmed").reduce((sum, p) => sum + p.amount, 0);
 // Hari tindakan (UTC) sebagai batas bawah tanggal acara; bila waktu tindakan tidak berformat ISO, batas diabaikan.
 const dayOf = (time: string): string => (/^\d{4}-\d{2}-\d{2}/.test(time) ? time.slice(0, 10) : "0000-00-00");
-export const isAmanah = (item: Cooperation): boolean => item.offer?.paymentMode === "amanah";
+/** Persentase pembayaran yang ditahan di Dana Amanah: 0 (langsung), 100 (amanah penuh), atau angka yang disepakati. */
+export const amanahShare = (offer: Offer | null | undefined): number => offer?.paymentMode === "amanah" ? 100 : offer?.paymentMode === "split" ? offer.amanahPercent ?? 0 : 0;
+/** Bagian yang ditahan dari satu pembayaran (dibulatkan ke rupiah terdekat). */
+export const heldPart = (offer: Offer | null | undefined, amount: number): number => Math.round(amount * amanahShare(offer) / 100);
+/** Label cara pembayaran untuk tampilan. */
+export const paymentLabel = (offer: Offer | null | undefined): string => offer?.paymentMode === "amanah" ? "Dana Amanah penuh" : offer?.paymentMode === "split" ? `Dana Amanah ${offer.amanahPercent ?? 0}%` : "Transfer langsung";
+/** true bila pembayaran lewat payment gateway (amanah penuh atau sebagian). */
+export const isAmanah = (item: Cooperation): boolean => item.offer?.paymentMode === "amanah" || item.offer?.paymentMode === "split";
 export const amanahOf = (item: Cooperation): Amanah => item.amanah ?? { held: 0, released: 0, refunded: 0 };
 export const reservedTotal = (item: Cooperation): number => item.payments.filter(p => p.status !== "rejected").reduce((sum, p) => sum + p.amount, 0);
 export function transitionFlow(source: Flow, action: FlowAction): Flow {
@@ -59,7 +69,9 @@ export function transitionFlow(source: Flow, action: FlowAction): Flow {
       need(Array.isArray(d.days) && d.days.length > 0, "Minimal satu tanggal dan lokasi kegiatan diperlukan.");
       const days = (d.days as { date: unknown; location: unknown }[]).map(day => { need(validDate(day.date), "Tanggal rangkaian tidak valid."); need((day.date as string) >= dayOf(action.time), "Tanggal rangkaian sudah lewat."); return { date: day.date as string, location: text(day.location) }; }).sort((a, b) => a.date.localeCompare(b.date));
       const priorVersions = item.offerVersions ?? (item.offer ? [structuredClone(item.offer)] : []);
-      item.offer = { version: (item.offer?.version ?? 0) + 1, price, deposit, scope: text(d.scope, 10), terms: text(d.terms, 10), days, paymentMode: d.paymentMode === "amanah" ? "amanah" : "direct" };
+      const paymentMode: PaymentMode = d.paymentMode === "amanah" || d.paymentMode === "split" ? d.paymentMode : "direct";
+      if (paymentMode === "split") need(typeof d.amanahPercent === "number" && Number.isInteger(d.amanahPercent) && d.amanahPercent >= 1 && d.amanahPercent <= 99, "Persentase Dana Amanah harus bilangan bulat 1–99.");
+      item.offer = { version: (item.offer?.version ?? 0) + 1, price, deposit, scope: text(d.scope, 10), terms: text(d.terms, 10), days, paymentMode, ...(paymentMode === "split" ? { amanahPercent: d.amanahPercent as number } : {}) };
       item.offerVersions = [...priorVersions, structuredClone(item.offer)];
       item.approvals = { couple: false, vendor: false }; item.phase = "offered"; break;
     }
@@ -70,12 +82,12 @@ export function transitionFlow(source: Flow, action: FlowAction): Flow {
       own("couple"); registered(); at("active", "running", "handover", "revision", "accepted");
       const amount = integer(d.amount); need(amount > 0 && amount + reservedTotal(item) <= item.offer!.price, "Nominal nol, melebihi sisa, atau masih ada catatan yang menunggu konfirmasi.");
       if (isAmanah(item)) {
-        // Simulasi: setoran lewat virtual account mitra pembayaran langsung terkonfirmasi sistem dan DITAHAN, belum milik vendor.
+        // Simulasi: setoran lewat virtual account langsung terkonfirmasi sistem; bagian amanah DITAHAN, sisanya diteruskan ke vendor.
         need(d.ack === true, "Setujui syarat Dana Amanah sebelum menyetor.");
         need(item.phase !== "disputed", "Setoran dihentikan selama sengketa.");
-        const amanah = amanahOf(item);
-        item.payments.push({ id: action.id, amount, proof: `AMN-${action.id} (virtual account simulasi)`, status: "confirmed", via: "amanah" });
-        item.amanah = { ...amanah, held: amanah.held + amount };
+        const amanah = amanahOf(item), held = heldPart(item.offer, amount);
+        item.payments.push({ id: action.id, amount, proof: `AMN-${action.id} (virtual account simulasi)`, status: "confirmed", via: item.offer!.paymentMode, held });
+        item.amanah = { ...amanah, held: amanah.held + held, released: amanah.released + amount - held };
         break;
       }
       item.payments.push({ id: action.id, amount, proof: text(d.proof, 5), status: "pending", via: "direct" }); break;
@@ -133,6 +145,15 @@ export function transitionFlow(source: Flow, action: FlowAction): Flow {
       delete item.cancellation; break;
     case "record_refund": own("vendor"); registered(); at("refund_due"); item.cancellation!.proof = text(d.proof, 5); item.phase = "refund_sent"; break;
     case "confirm_refund": own("couple"); registered(); at("refund_sent"); need(d.ack === true, "Konfirmasi penerimaan refund diperlukan."); item.phase = "cancelled"; break;
+    case "gateway_paid": {
+      // Pembayaran nyata yang sudah dikonfirmasi payment gateway dan diperiksa server. Uang sudah diterima, jadi dicatat apa pun tahapnya.
+      need(action.actor === "system", "Hanya sistem pembayaran yang dapat mencatat pembayaran gateway."); need(isAmanah(item), "Perjanjian ini tidak memakai pembayaran lewat VAKSARA.");
+      const amount = integer(d.amount), held = integer(d.held); need(amount > 0 && held <= amount, "Nominal pembayaran gateway tidak valid.");
+      const amanah = amanahOf(item);
+      item.payments.push({ id: action.id, amount, proof: text(d.proof, 3), status: "confirmed", via: item.offer!.paymentMode, held });
+      item.amanah = { ...amanah, held: amanah.held + held, released: amanah.released + amount - held };
+      break;
+    }
     default: throw new Error("Tindakan tidak dikenal.");
   }
   item.history.push({ id: action.id, actor: action.actor, action: action.type, time: action.time, version: item.offer?.version ?? null }); return flow;
@@ -144,6 +165,6 @@ export function validFlow(value: unknown): value is Flow {
     if (![f.vendorReview.identity, f.vendorReview.culture, f.vendorReview.consent].every(v => typeof v === "boolean")) return false;
     if (new Set(f.cases.map(c => c.id)).size !== f.cases.length) return false;
     if (f.catalog !== undefined && (!Array.isArray(f.catalog) || !f.catalog.every(n => typeof n === "string"))) return false;
-    return f.cases.every(c => typeof c.id === "string" && typeof c.vendor === "string" && typeof c.request === "string" && typeof c.reply === "string" && typeof c.evidence === "string" && typeof c.reviewNote === "string" && validDate(c.eventDate) && c.phase in phaseLabels && typeof c.approvals.couple === "boolean" && typeof c.approvals.vendor === "boolean" && Array.isArray(c.history) && c.history.every(h => typeof h.id === "string" && typeof h.time === "string" && typeof h.action === "string" && ["couple", "vendor", "admin"].includes(h.actor)) && (!c.cancellation || (Number.isSafeInteger(c.cancellation.refund) && c.cancellation.refund >= 0 && typeof c.cancellation.proof === "string")) && Array.isArray(c.payments) && c.payments.every(p => Number.isSafeInteger(p.amount) && p.amount > 0 && ["pending", "confirmed", "rejected"].includes(p.status) && typeof p.proof === "string" && (p.via === undefined || p.via === "direct" || p.via === "amanah")) && (!c.amanah || ([c.amanah.held, c.amanah.released, c.amanah.refunded].every(n => Number.isSafeInteger(n) && n >= 0) && (!c.amanah.release || (Number.isSafeInteger(c.amanah.release.amount) && c.amanah.release.amount > 0 && ["couple", "vendor"].includes(c.amanah.release.by))))) && (!c.offer || (Number.isSafeInteger(c.offer.price) && c.offer.price > 0 && c.offer.deposit >= 0 && c.offer.deposit <= c.offer.price && (c.offer.paymentMode === undefined || c.offer.paymentMode === "direct" || c.offer.paymentMode === "amanah") && Array.isArray(c.offer.days) && c.offer.days.every(d => validDate(d.date) && typeof d.location === "string"))));
+    return f.cases.every(c => typeof c.id === "string" && typeof c.vendor === "string" && typeof c.request === "string" && typeof c.reply === "string" && typeof c.evidence === "string" && typeof c.reviewNote === "string" && validDate(c.eventDate) && c.phase in phaseLabels && typeof c.approvals.couple === "boolean" && typeof c.approvals.vendor === "boolean" && Array.isArray(c.history) && c.history.every(h => typeof h.id === "string" && typeof h.time === "string" && typeof h.action === "string" && ["couple", "vendor", "admin", "system"].includes(h.actor)) && (!c.cancellation || (Number.isSafeInteger(c.cancellation.refund) && c.cancellation.refund >= 0 && typeof c.cancellation.proof === "string")) && Array.isArray(c.payments) && c.payments.every(p => Number.isSafeInteger(p.amount) && p.amount > 0 && ["pending", "confirmed", "rejected"].includes(p.status) && typeof p.proof === "string" && (p.via === undefined || p.via === "direct" || p.via === "amanah" || p.via === "split")) && (!c.amanah || ([c.amanah.held, c.amanah.released, c.amanah.refunded].every(n => Number.isSafeInteger(n) && n >= 0) && (!c.amanah.release || (Number.isSafeInteger(c.amanah.release.amount) && c.amanah.release.amount > 0 && ["couple", "vendor"].includes(c.amanah.release.by))))) && (!c.offer || (Number.isSafeInteger(c.offer.price) && c.offer.price > 0 && c.offer.deposit >= 0 && c.offer.deposit <= c.offer.price && (c.offer.paymentMode === undefined || c.offer.paymentMode === "direct" || c.offer.paymentMode === "amanah" || (c.offer.paymentMode === "split" && Number.isInteger(c.offer.amanahPercent) && c.offer.amanahPercent! >= 1 && c.offer.amanahPercent! <= 99)) && Array.isArray(c.offer.days) && c.offer.days.every(d => validDate(d.date) && typeof d.location === "string"))));
   } catch { return false; }
 }

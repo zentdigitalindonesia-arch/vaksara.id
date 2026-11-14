@@ -5,7 +5,7 @@ import { useApp } from "@/store";
 import { useCooperation } from "@/CooperationContext";
 import { formatIDR, practitioners } from "@/data";
 import { parseCsv, publicVendors } from "@/data-public-vendors";
-import { confirmedTotal, phaseLabels } from "@/utils/cooperation";
+import { confirmedTotal, paymentLabel, phaseLabels } from "@/utils/cooperation";
 import { demoAccounts } from "@/utils/demo-login";
 import { enterLive, liveBoot, useLive, type Listing } from "@/LiveContext";
 import { friendly, liveEnabled, q, rest, signIn, signOut } from "@/utils/supabase";
@@ -138,7 +138,7 @@ export default function OwnerConsole() {
   const cases: Cooperation[] = data ? data.coops.map(c => c.data) : flow.cases;
   const vendorRows = practitioners.map(p => [p.name, p.category, p.role, p.city, p.area, p.verifiedIdentity, p.verifiedPortfolio, p.verifiedKnowledge, p.priceFrom]);
   const dirRows = publicVendors.map(v => [v.name, v.category, v.address, v.phone, v.instagram, v.tiktok, v.facebook, v.website, v.note, v.source]);
-  const caseRows = data ? data.coops.map(c => [c.id, c.couple_name, c.vendor_name, phaseLabels[c.phase as keyof typeof phaseLabels] ?? c.phase, c.data.eventDate, c.data.offer?.price ?? "", confirmedTotal(c.data), c.data.offer?.paymentMode === "amanah" ? "Dana Amanah" : c.data.offer ? "Langsung" : "", c.data.request]) : flow.cases.map(c => [c.id, flow.accounts.couple?.name ?? "", c.vendor, phaseLabels[c.phase], c.eventDate, c.offer?.price ?? "", confirmedTotal(c), c.offer?.paymentMode === "amanah" ? "Dana Amanah" : c.offer ? "Langsung" : "", c.request]);
+  const caseRows = data ? data.coops.map(c => [c.id, c.couple_name, c.vendor_name, phaseLabels[c.phase as keyof typeof phaseLabels] ?? c.phase, c.data.eventDate, c.data.offer?.price ?? "", confirmedTotal(c.data), c.data.offer ? paymentLabel(c.data.offer) : "", c.data.request]) : flow.cases.map(c => [c.id, flow.accounts.couple?.name ?? "", c.vendor, phaseLabels[c.phase], c.eventDate, c.offer?.price ?? "", confirmedTotal(c), c.offer ? paymentLabel(c.offer) : "", c.request]);
   const reqRows = data ? data.requests.map(r => [r.id, r.family, r.category, r.title, r.event_date, r.location, r.budget, r.status === "open" ? "Terbuka" : `Dipilih: ${r.chosen ?? ""}`, r.open_request_responses?.length ?? 0, r.created_at.slice(0, 10)]) : openRequests.map(r => [r.id, r.family, r.category, r.title, r.date, r.location, r.budget, r.status === "open" ? "Terbuka" : `Dipilih: ${r.chosen}`, r.responses.length, r.createdAt]);
 
   if (liveEnabled) {

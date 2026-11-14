@@ -5,7 +5,7 @@ import { q, removeFile, rest, signedUrl, uploadFile } from "@/utils/supabase";
 // Dokumen verifikasi akun nyata. Berkas di bucket privat "verifikasi" (<id akun>/<berkas>), catatannya di tabel documents.
 // Hanya pemilik dan peninjau yang dapat membuka; lihat supabase/schema.sql bagian DOKUMEN VERIFIKASI.
 export const BUCKET = "verifikasi";
-export type DocKind = "ktp" | "portfolio" | "nib" | "recommendation" | "face";
+export type DocKind = "ktp" | "portfolio" | "nib" | "recommendation" | "face" | "bank_book";
 export type VerificationDoc = { id: string; user_id: string; kind: DocKind; path: string; note: string; meta: Record<string, unknown>; created_at: string };
 
 export const docLabels: Record<DocKind, string> = {
@@ -14,6 +14,7 @@ export const docLabels: Record<DocKind, string> = {
   nib: "NIB / izin usaha",
   recommendation: "Surat rekomendasi",
   face: "Verifikasi wajah",
+  bank_book: "Buku rekening",
 };
 export const MAX_BYTES = 5 * 1024 * 1024;
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "application/pdf"];

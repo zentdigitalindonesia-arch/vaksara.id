@@ -8,7 +8,7 @@ import { friendly } from "@/utils/supabase";
 
 const dateOf = (iso: string) => new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 
-function DocRow({ kind, label, hint, required, max, accept, docs, reload, readOnly }: { kind: DocKind; label: string; hint: string; required?: boolean; max: number; accept: string; docs: VerificationDoc[]; reload: () => Promise<void>; readOnly?: boolean }) {
+export function DocRow({ kind, label, hint, required, max, accept, docs, reload, readOnly }: { kind: DocKind; label: string; hint: string; required?: boolean; max: number; accept: string; docs: VerificationDoc[]; reload: () => Promise<void>; readOnly?: boolean }) {
   const { toast } = useApp();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -86,7 +86,7 @@ export function ReviewerDocuments({ userId }: { userId: string }) {
     <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-[14px] font-bold text-ink">Dokumen verifikasi</p><Badge tone={check.complete ? "green" : "red"}>{check.complete ? "Wajib lengkap" : `${check.done} dari ${check.items.length} wajib`}</Badge></div>
     {!check.complete && <p className="mt-1 text-[13px] text-[#933A2F]">Belum dapat disetujui: {check.items.filter(i => !i.ok).map(i => i.label.toLowerCase()).join(", ")}.</p>}
     {faceDoc && <p className="mt-1 text-[13px] text-ink-soft">Verifikasi wajah {dateOf(faceDoc.created_at)} · langkah: {steps.join(" → ") || "-"}. Cocokkan foto wajah dengan foto di KTP.</p>}
-    <div className="mt-1">{(["ktp", "face", "portfolio", "nib", "recommendation"] as DocKind[]).map(k => docs.some(d => d.kind === k) && <DocRow key={k} kind={k} label={docLabels[k]} hint="" max={k === "portfolio" ? 5 : 1} accept="" docs={docs} reload={reload} readOnly />)}</div>
+    <div className="mt-1">{(["ktp", "face", "portfolio", "nib", "recommendation", "bank_book"] as DocKind[]).map(k => docs.some(d => d.kind === k) && <DocRow key={k} kind={k} label={docLabels[k]} hint="" max={k === "portfolio" ? 5 : 1} accept="" docs={docs} reload={reload} readOnly />)}</div>
     {docs.length === 0 && <p className="mt-1 text-[13px] text-muted">Pelaku belum mengunggah dokumen.</p>}
   </div>;
 }

@@ -481,7 +481,7 @@ create trigger notify_open_response after insert on public.open_request_response
 create table if not exists public.documents (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
-  kind text not null check (kind in ('ktp', 'portfolio', 'nib', 'recommendation', 'face')),
+  kind text not null check (kind in ('ktp', 'portfolio', 'nib', 'recommendation', 'face', 'bank_book')),
   path text not null unique check (length(path) between 5 and 300),
   note text not null default '' check (length(note) <= 300),
   meta jsonb not null default '{}',
@@ -617,6 +617,170 @@ end $$;
 drop trigger if exists notify_data_request on public.data_requests;
 create trigger notify_data_request after insert on public.data_requests
   for each row execute function public.notify_data_request();
+
+-- ============ DANA AMANAH (XENDIT) & REKENING PELAKU ============
+-- Jenis dokumen baru: buku rekening / tangkapan layar rekening (untuk basis data yang sudah ada).
+alter table public.documents drop constraint if exists documents_kind_check;
+alter table public.documents add constraint documents_kind_check check (kind in ('ktp', 'portfolio', 'nib', 'recommendation', 'face', 'bank_book'));
+
+-- Rekening pencairan pelaku. Atas nama wajib sama dengan nama usaha (NIB) atau penanggung jawab (KTP); diperiksa peninjau.
+-- Pencairan hanya ke rekening berstatus approved; setiap perubahan oleh pelaku mengembalikan status ke pending.
+create table if not exists public.vendor_bank_accounts (
+  vendor_id uuid primary key default auth.uid() references public.vendor_listings(id) on delete cascade,
+  bank_code text not null check (bank_code ~ '^ID_[A-Z0-9_]{2,30}$'),
+  account_number text not null check (account_number ~ '^[0-9]{5,20}$'),
+  holder_name text not null check (length(trim(holder_name)) between 3 and 100),
+  holder_basis text not null check (holder_basis in ('usaha', 'penanggung_jawab')),
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  review_note text not null default '' check (length(review_note) <= 500),
+  reviewed_by uuid references public.profiles(id) on delete set null,
+  reviewed_at timestamptz,
+  updated_at timestamptz not null default now()
+);
+alter table public.vendor_bank_accounts enable row level security;
+drop policy if exists bank_select on public.vendor_bank_accounts;
+create policy bank_select on public.vendor_bank_accounts for select to authenticated using (vendor_id = auth.uid() or public.is_admin());
+drop policy if exists bank_insert on public.vendor_bank_accounts;
+create policy bank_insert on public.vendor_bank_accounts for insert to authenticated with check (vendor_id = auth.uid() and public.my_role() = 'vendor');
+drop policy if exists bank_update on public.vendor_bank_accounts;
+create policy bank_update on public.vendor_bank_accounts for update to authenticated using (vendor_id = auth.uid() or public.is_admin()) with check (vendor_id = auth.uid() or public.is_admin());
+revoke all on public.vendor_bank_accounts from anon, authenticated;
+grant select, insert, update on public.vendor_bank_accounts to authenticated;
+
+create or replace function public.guard_bank_account() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  new.updated_at := now();
+  if public.is_admin() and tg_op = 'UPDATE' and new.vendor_id <> auth.uid() then
+    -- Peninjau hanya mengubah status dan catatan, bukan isi rekening.
+    if (new.bank_code, new.account_number, new.holder_name, new.holder_basis) is distinct from (old.bank_code, old.account_number, old.holder_name, old.holder_basis) then
+      raise exception 'Peninjau tidak dapat mengubah isi rekening pelaku.';
+    end if;
+    if new.status = 'approved' and not exists (select 1 from public.documents where user_id = new.vendor_id and kind = 'bank_book') then
+      raise exception 'Buku rekening belum diunggah pelaku.';
+    end if;
+    if new.status = 'rejected' and length(trim(new.review_note)) < 10 then
+      raise exception 'Tulis alasan penolakan rekening (min. 10 karakter).';
+    end if;
+    new.reviewed_by := auth.uid(); new.reviewed_at := now();
+    return new;
+  end if;
+  -- Pelaku (atau peninjau yang juga pemilik): setiap simpan kembali ke pending dan menunggu pemeriksaan.
+  new.status := 'pending'; new.review_note := ''; new.reviewed_by := null; new.reviewed_at := null;
+  return new;
+end $$;
+drop trigger if exists guard_bank_account on public.vendor_bank_accounts;
+create trigger guard_bank_account before insert or update on public.vendor_bank_accounts
+  for each row execute function public.guard_bank_account();
+
+create or replace function public.notify_bank_account() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare nm text := (select name from public.vendor_listings where id = new.vendor_id);
+begin
+  if new.status = 'pending' and (tg_op = 'INSERT' or old.status is distinct from 'pending' or (new.bank_code, new.account_number, new.holder_name) is distinct from (old.bank_code, old.account_number, old.holder_name)) then
+    perform public.notify_admins('bank_review', 'Periksa rekening: ' || coalesce(nm, 'pelaku'), 'Rekening pencairan baru atau diubah. Cocokkan atas nama dengan KTP/NIB dan buku rekening.', 'admin/screening');
+  elsif tg_op = 'UPDATE' and new.status is distinct from old.status and new.status = 'approved' then
+    perform public.notify(new.vendor_id, 'bank_approved', 'Rekening pencairan disetujui', 'Dana Amanah dapat dicairkan ke rekening ini.', 'vendor/profil');
+  elsif tg_op = 'UPDATE' and new.status is distinct from old.status and new.status = 'rejected' then
+    perform public.notify(new.vendor_id, 'bank_rejected', 'Rekening pencairan perlu diperbaiki', new.review_note, 'vendor/profil');
+  end if;
+  return new;
+end $$;
+drop trigger if exists notify_bank_account on public.vendor_bank_accounts;
+create trigger notify_bank_account after insert or update on public.vendor_bank_accounts
+  for each row execute function public.notify_bank_account();
+
+-- Ringkasan rekening untuk keluarga mitra: bank, atas nama, 4 digit terakhir, dan status (nomor lengkap tidak dibuka).
+create or replace function public.payout_account_summary(p_vendor uuid)
+returns table (bank_code text, holder_name text, last4 text, status text)
+language sql stable security definer set search_path = public as $$
+  select b.bank_code, b.holder_name, right(b.account_number, 4), b.status from public.vendor_bank_accounts b
+  where b.vendor_id = p_vendor and (p_vendor = auth.uid() or public.is_admin() or exists (
+    select 1 from public.cooperations c where c.vendor_id = p_vendor and c.couple_id = auth.uid()));
+$$;
+grant execute on function public.payout_account_summary(uuid) to authenticated;
+
+-- Tagihan pembayaran keluarga lewat Xendit. Ditulis hanya oleh fungsi server (service role).
+create table if not exists public.escrow_payments (
+  id text primary key check (length(id) between 8 and 80),
+  case_id text not null references public.cooperations(id) on delete restrict,
+  couple_id uuid not null references public.profiles(id),
+  vendor_id uuid not null references public.profiles(id),
+  amount bigint not null check (amount > 0),
+  fee bigint not null default 0 check (fee >= 0),
+  held bigint not null check (held >= 0),
+  mode text not null check (mode in ('amanah', 'split')),
+  status text not null default 'pending' check (status in ('pending', 'paid', 'expired', 'failed')),
+  invoice_id text, invoice_url text, method text not null default '',
+  applied boolean not null default false,
+  expires_at timestamptz, paid_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists escrow_payments_case on public.escrow_payments (case_id, created_at);
+alter table public.escrow_payments enable row level security;
+drop policy if exists epay_select on public.escrow_payments;
+create policy epay_select on public.escrow_payments for select to authenticated using (couple_id = auth.uid() or vendor_id = auth.uid() or public.is_admin());
+revoke all on public.escrow_payments from anon, authenticated;
+grant select on public.escrow_payments to authenticated;
+
+-- Pengiriman dana keluar (ke pelaku atau refund ke keluarga), dengan salinan rekening tujuan saat dikirim.
+create table if not exists public.escrow_payouts (
+  id text primary key check (length(id) between 8 and 120),
+  case_id text not null references public.cooperations(id) on delete restrict,
+  couple_id uuid not null references public.profiles(id),
+  vendor_id uuid not null references public.profiles(id),
+  kind text not null check (kind in ('direct', 'release', 'remainder', 'refund')),
+  recipient text not null check (recipient in ('vendor', 'couple')),
+  gross bigint not null check (gross > 0),
+  fee bigint not null default 0 check (fee >= 0),
+  bank_code text, account_number text, holder_name text,
+  status text not null default 'queued' check (status in ('awaiting_account', 'awaiting_admin', 'queued', 'processing', 'succeeded', 'failed')),
+  xendit_id text, failure text not null default '', attempts int not null default 0,
+  note text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists escrow_payouts_case on public.escrow_payouts (case_id, created_at);
+alter table public.escrow_payouts enable row level security;
+drop policy if exists epo_select on public.escrow_payouts;
+create policy epo_select on public.escrow_payouts for select to authenticated using (couple_id = auth.uid() or vendor_id = auth.uid() or public.is_admin());
+revoke all on public.escrow_payouts from anon, authenticated;
+grant select on public.escrow_payouts to authenticated;
+
+-- Pemberitahuan pembayaran & pencairan.
+create or replace function public.notify_escrow_payment() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'paid' and old.status is distinct from 'paid' then
+    perform public.notify(new.couple_id, 'escrow_paid', 'Pembayaran diterima: ' || public.idr(new.amount), 'Tercatat di kerja sama Anda. Ditahan di Dana Amanah: ' || public.idr(new.held) || '.', 'planner/alur?case=' || new.case_id);
+    perform public.notify(new.vendor_id, 'escrow_paid', 'Keluarga membayar ' || public.idr(new.amount), 'Ditahan di Dana Amanah: ' || public.idr(new.held) || '; diteruskan ke rekening Anda: ' || public.idr(new.amount - new.held) || '.', 'vendor/alur?case=' || new.case_id);
+  end if;
+  return new;
+end $$;
+drop trigger if exists notify_escrow_payment on public.escrow_payments;
+create trigger notify_escrow_payment after update on public.escrow_payments for each row execute function public.notify_escrow_payment();
+
+create or replace function public.notify_escrow_payout() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare who uuid := case when new.recipient = 'vendor' then new.vendor_id else new.couple_id end;
+begin
+  if tg_op = 'UPDATE' and new.status is not distinct from old.status then return new; end if;
+  if new.status = 'succeeded' then
+    perform public.notify(who, 'payout_ok', 'Dana terkirim: ' || public.idr(new.gross - new.fee), 'Ke rekening ' || coalesce(new.holder_name, '') || ' (' || coalesce(new.bank_code, '') || ' ••' || right(coalesce(new.account_number, ''), 4) || ').', case when new.recipient = 'vendor' then 'vendor/alur?case=' || new.case_id else 'planner/alur?case=' || new.case_id end);
+  elsif new.status = 'failed' then
+    perform public.notify_admins('payout_failed', 'Pencairan gagal: ' || public.idr(new.gross), coalesce(nullif(new.failure, ''), 'Periksa rekening tujuan lalu kirim ulang.'), 'admin/screening');
+    perform public.notify(who, 'payout_failed', 'Pengiriman dana tertunda', 'Peninjau VAKSARA sedang memeriksa. Pastikan data rekening Anda benar.', case when new.recipient = 'vendor' then 'vendor/profil' else 'planner/alur?case=' || new.case_id end);
+  elsif new.status = 'awaiting_account' and new.recipient = 'couple' then
+    perform public.notify(new.couple_id, 'refund_account', 'Isi rekening untuk refund ' || public.idr(new.gross), 'Refund Dana Amanah menunggu rekening tujuan Anda.', 'planner/alur?case=' || new.case_id);
+  elsif new.status = 'awaiting_account' then
+    perform public.notify(new.vendor_id, 'payout_wait', 'Pencairan menunggu rekening disetujui', 'Lengkapi rekening pencairan dan buku rekening di halaman profil.', 'vendor/profil');
+  elsif new.status = 'awaiting_admin' then
+    perform public.notify_admins('payout_review', 'Periksa rekening refund ' || public.idr(new.gross), 'Cocokkan atas nama rekening dengan KTP keluarga sebelum mengirim.', 'admin/screening');
+  end if;
+  return new;
+end $$;
+drop trigger if exists notify_escrow_payout on public.escrow_payouts;
+create trigger notify_escrow_payout after insert or update on public.escrow_payouts for each row execute function public.notify_escrow_payout();
 
 -- ============ HAK AKSES API ============
 grant usage on schema public to anon, authenticated;

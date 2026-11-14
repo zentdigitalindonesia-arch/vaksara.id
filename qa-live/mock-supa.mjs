@@ -30,7 +30,7 @@ function runAs(uid, query) {
   // baris pertama = hasil set_config (f/t), sisanya = JSON (json_agg dapat memuat baris baru)
   return JSON.parse(out.slice(1).join("\n") || "null");
 }
-const PK = { data_requests: ["id"], profiles: ["id"], vendor_listings: ["id"], user_state: ["user_id", "key"], cooperations: ["id"], open_requests: ["id"], open_request_responses: ["id"], notifications: ["id"] };
+const PK = { escrow_payouts: ["id"], escrow_payments: ["id"], vendor_bank_accounts: ["vendor_id"], data_requests: ["id"], profiles: ["id"], vendor_listings: ["id"], user_state: ["user_id", "key"], cooperations: ["id"], open_requests: ["id"], open_request_responses: ["id"], notifications: ["id"] };
 const EMBED = { open_request_responses: { parent: "open_requests", fk: "request_id" } };
 
 function parseSelect(sel, table) {
@@ -61,6 +61,8 @@ function order(params) {
 function limit(params) { const n = Number(params.get("limit")); return Number.isSafeInteger(n) && n > 0 ? ` limit ${n}` : ""; }
 
 function handleRest(req, url, body, uid) {
+  const rpc = url.pathname.match(/^\/rest\/v1\/rpc\/([a-z_]+)$/);
+  if (rpc) { const args = Object.entries(body ?? {}).map(([k, v]) => `${ident(k)} => ${lit(String(v))}`).join(", "); return runAs(uid, `select coalesce(json_agg(r), '[]'::json) from public.${ident(rpc[1])}(${args}) r`); }
   const table = ident(url.pathname.replace("/rest/v1/", ""));
   const params = url.searchParams; const prefer = req.headers.prefer ?? "";
   const ret = prefer.includes("return=representation");
@@ -110,10 +112,35 @@ function handleAuth(req, url, body) {
 // Edge Function tiruan: menjalankan supabase/functions/cooperation-action/index.ts yang sama dengan produksi.
 const require = createRequire(import.meta.url);
 const ts = require("typescript");
-const fnSource = fs.readFileSync(new URL("../supabase/functions/cooperation-action/index.ts", import.meta.url), "utf8").replace(/^Deno\.serve\(.*\);\s*$/m, "");
-const fnModule = await import("data:text/javascript;base64," + Buffer.from(ts.transpileModule(fnSource, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText).toString("base64"));
-const fnEnv = key => ({ SUPABASE_URL: "http://127.0.0.1:54321", SUPABASE_SERVICE_ROLE_KEY: SERVICE, SUPABASE_ANON_KEY: ANON })[key] ?? "";
-const FUNCTIONS = { "cooperation-action": fnModule.handle };
+const loadFn = async name => {
+  const src = fs.readFileSync(new URL(`../supabase/functions/${name}/index.ts`, import.meta.url), "utf8").replace(/^Deno\.serve\(.*\);\s*$/m, "");
+  return (await import("data:text/javascript;base64," + Buffer.from(ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText).toString("base64"))).handle;
+};
+const fnEnv = key => ({ SUPABASE_URL: "http://127.0.0.1:54321", SUPABASE_SERVICE_ROLE_KEY: SERVICE, SUPABASE_ANON_KEY: ANON, XENDIT_SECRET_KEY: "xnd_test", XENDIT_API_BASE: "http://127.0.0.1:54321/xendit", XENDIT_CALLBACK_TOKEN: "cb-test", PAYMENT_FEE: "5000", PAYOUT_FEE: "5000", SITE_URL: "https://vaksara.test" })[key] ?? "";
+const FUNCTIONS = { "cooperation-action": await loadFn("cooperation-action"), "xendit-webhook": await loadFn("xendit-webhook") };
+
+// Xendit tiruan: tagihan (invoice) dan pencairan (payouts). /__xendit/pay menandai tagihan dibayar untuk uji.
+const xnd = { invoices: new Map(), payouts: [], keys: new Map(), n: 0 };
+function handleXendit(req, url, body) {
+  if (url.pathname === "/__xendit/pay") { const inv = xnd.invoices.get(body.invoice_id); if (!inv) return [404, {}]; Object.assign(inv, { status: "PAID", paid_amount: body.paid_amount ?? inv.amount, payment_method: "BANK_TRANSFER", bank_code: body.bank ?? "BCA" }); return [200, inv]; }
+  if (url.pathname === "/__xendit/expire") { const inv = xnd.invoices.get(body.invoice_id); inv.status = "EXPIRED"; return [200, inv]; }
+  if (url.pathname === "/__xendit/payouts") return [200, xnd.payouts];
+  if (req.headers.authorization !== "Basic " + Buffer.from("xnd_test:").toString("base64")) return [401, { error_code: "INVALID_API_KEY", message: "API key tidak valid" }];
+  const path = url.pathname.slice("/xendit".length);
+  if (req.method === "POST" && path === "/v2/invoices") {
+    if (!body.external_id || !(body.amount > 0)) return [400, { error_code: "API_VALIDATION_ERROR", message: "external_id dan amount wajib" }];
+    const id = "inv-" + ++xnd.n; const inv = { id, external_id: body.external_id, amount: body.amount, status: "PENDING", invoice_url: "https://checkout.xendit.test/" + id, expiry_date: new Date(Date.now() + 864e5).toISOString(), request: body };
+    xnd.invoices.set(id, inv); return [200, inv];
+  }
+  if (req.method === "GET" && path.startsWith("/v2/invoices/")) { const inv = xnd.invoices.get(decodeURIComponent(path.slice(13))); return inv ? [200, inv] : [404, { error_code: "INVOICE_NOT_FOUND_ERROR", message: "Tidak ada" }]; }
+  if (req.method === "POST" && path === "/v2/payouts") {
+    const key = req.headers["idempotency-key"]; if (!key) return [400, { error_code: "API_VALIDATION_ERROR", message: "Idempotency-key wajib" }];
+    if (xnd.keys.has(key)) return [200, xnd.keys.get(key)];
+    const out = { id: "disb-" + ++xnd.n, reference_id: body.reference_id, amount: body.amount, channel_code: body.channel_code, channel_properties: body.channel_properties, status: "ACCEPTED" };
+    xnd.keys.set(key, out); xnd.payouts.push(out); return [200, out];
+  }
+  return [404, { message: "rute Xendit tiruan tidak ada" }];
+}
 
 http.createServer((req, res) => {
   const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "apikey, authorization, content-type, prefer", "Access-Control-Allow-Methods": "GET,POST,PATCH,PUT,DELETE,OPTIONS" };
@@ -133,6 +160,7 @@ http.createServer((req, res) => {
     const send = (code, data) => { res.writeHead(code, { ...cors, "Content-Type": "application/json" }); res.end(data === null || data === undefined ? "" : JSON.stringify(data)); };
     try {
       if (url.pathname === "/__log") return send(200, log);
+      if (url.pathname.startsWith("/xendit/") || url.pathname.startsWith("/__xendit/")) { const [c, d] = handleXendit(req, url, body); return send(c, d); }
       if (req.headers.apikey !== ANON && req.headers.apikey !== SERVICE) return send(401, { message: "No API key" });
       if (url.pathname.startsWith("/auth/v1/")) { const [c, d] = handleAuth(req, url, body); return send(c, d); }
       if (url.pathname.startsWith("/rest/v1/")) {
