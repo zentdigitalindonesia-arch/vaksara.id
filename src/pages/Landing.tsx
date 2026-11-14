@@ -140,7 +140,7 @@ export default function Landing() {
             <div className="absolute -bottom-5 right-1 w-[208px] rounded-xl border border-line bg-white p-3 shadow-xl sm:-right-4 sm:bottom-8 sm:w-[236px]">
               <div className="flex items-center justify-between">
                 <span className="text-[12px] font-bold uppercase tracking-wider text-muted">Perjanjian terpantau</span>
-                <Badge tone="green" dot className="px-1.5 py-0.5 text-[11px]">Aktif</Badge>
+                <Badge tone="green" dot className="px-1.5 py-0.5 text-[12px]">Aktif</Badge>
               </div>
               <div className="mt-1.5 flex items-center gap-2">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink text-[12px] font-bold text-cream">TB</span>
@@ -158,7 +158,7 @@ export default function Landing() {
             <div className="absolute -bottom-7 left-3 hidden h-[62px] w-[62px] -rotate-6 items-center justify-center rounded-full border border-sand bg-[#F3EAD9] text-center min-[420px]:flex sm:-left-5 sm:h-[68px] sm:w-[68px]">
               <div>
                 <ShieldCheck className="mx-auto h-3.5 w-3.5 text-sand-deep" />
-                <div className="mt-0.5 text-[11px] font-bold uppercase leading-tight tracking-wider text-ink">VAKSARA<br />Trust</div>
+                <div className="mt-0.5 text-[12px] font-bold uppercase leading-tight tracking-wider text-ink">VAKSARA<br />Trust</div>
               </div>
             </div>
           </div>
@@ -505,7 +505,7 @@ export default function Landing() {
               <p className="font-display text-[15px] leading-relaxed text-ink">"Tradisi kami bukan satu naskah yang sama untuk semua keluarga. Yang penting adalah kami duduk bersama dan saling mendengar."</p>
               <footer className="mt-2 flex items-center justify-between gap-3">
                 <span className="text-[13px] font-semibold text-ink-soft">Hj. Andi Nurhaeni · pemandu prosesi adat</span>
-                <span className="shrink-0 rounded bg-white/70 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-muted">Ilustrasi</span>
+                <span className="shrink-0 rounded bg-white/70 px-1.5 py-0.5 text-[12px] font-bold uppercase tracking-wider text-muted">Ilustrasi</span>
               </footer>
             </blockquote>}
             <Button variant="secondary" size="sm" className="mt-4" onClick={() => navigate("pengetahuan")} trailing={<ArrowRight className="h-3.5 w-3.5" />}>
@@ -626,7 +626,7 @@ function PlannerMock() {
           <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-[#D7BCA9]" /><span className="h-2 w-2 rounded-full bg-[#DCD5C5]" /><span className="h-2 w-2 rounded-full bg-[#CAD9CD]" />
           </div>
-          <div className="rounded bg-white px-3 py-0.5 text-[11px] text-muted ring-1 ring-line">vaksara.id/planner</div>
+          <div className="rounded bg-white px-3 py-0.5 text-[12px] text-muted ring-1 ring-line">vaksara.id/planner</div>
           <div className="flex items-center gap-1"><span className="h-4 w-4 rounded-full bg-sand-light" /><span className="h-1 w-4 rounded bg-line" /></div>
         </div>
         <div className="grid grid-cols-[64px_1fr] sm:grid-cols-[92px_1fr]">
@@ -698,7 +698,7 @@ function PlannerMock() {
       </div>
       <div className="absolute -bottom-4 -left-3 flex items-center gap-1.5 rounded-lg border border-line bg-white px-2.5 py-1.5 shadow-lg">
         <span className="flex h-4 w-4 items-center justify-center rounded-full bg-sage"><Check className="h-2.5 w-2.5 text-[#2B5949]" /></span>
-        <span className="text-[11px] font-semibold text-ink">{liveEnabled ? "Tersimpan di akun Anda" : "Data tersimpan pada prototipe"}</span>
+        <span className="text-[12px] font-semibold text-ink">{liveEnabled ? "Tersimpan di akun Anda" : "Data tersimpan pada prototipe"}</span>
       </div>
     </div>
   );

@@ -108,3 +108,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* Keterbacaan di ponsel: teks terkecil (12 px) dibesarkan menjadi 13 px pada layar sempit.
+   Di luar @layer agar mengalahkan utilitas Tailwind tanpa !important. */
+@media (max-width: 639px) {
+  .text-\[12px\] { font-size: 13px; }
+}

@@ -154,7 +154,7 @@ export function AgreementDetail({ id }: { id: string }) {
                   <LogoMark className="h-10 w-10" />
                   <div>
                     <div className="font-display text-[15px] font-semibold leading-none tracking-[0.14em] text-ink">VAKSARA</div>
-                    <div className="mt-1 text-[11px] font-bold uppercase tracking-[0.16em] text-muted">Perjanjian Layanan Budaya</div>
+                    <div className="mt-1 text-[12px] font-bold uppercase tracking-[0.16em] text-muted">Perjanjian Layanan Budaya</div>
                   </div>
                 </div>
                 <div className="text-right">
@@ -174,11 +174,11 @@ export function AgreementDetail({ id }: { id: string }) {
                   { t: "PIHAK KEDUA — PELAKU BUDAYA", n: a.partner, sub: `${a.category} · ${a.location.split(",")[0]}`, mail: `halo@${a.partner.toLowerCase().replace(/[^a-z]/g, "").slice(0, 12)}.id` },
                 ].map((party) => (
                   <div key={party.t}>
-                    <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-sand-deep">{party.t}</div>
+                    <div className="text-[12px] font-bold uppercase tracking-[0.12em] text-sand-deep">{party.t}</div>
                     <div className="mt-1 font-display text-[14px] font-semibold text-ink">{party.n}</div>
                     <div className="mt-0.5 text-[13px] text-muted">{party.sub}</div>
                     <div className="mt-1 flex items-center gap-1 text-[12px] text-ink-soft"><Mail className="h-2.5 w-2.5 text-sand-deep" /> {party.mail}</div>
-                    <div className="mt-1.5 inline-flex items-center gap-1 rounded bg-[#EDF4EF] px-1.5 py-0.5 text-[11px] font-semibold text-[#2B5949]"><BadgeCheck className="h-2.5 w-2.5" /> Identitas diperiksa</div>
+                    <div className="mt-1.5 inline-flex items-center gap-1 rounded bg-[#EDF4EF] px-1.5 py-0.5 text-[12px] font-semibold text-[#2B5949]"><BadgeCheck className="h-2.5 w-2.5" /> Identitas diperiksa</div>
                   </div>
                 ))}
               </div>
@@ -188,7 +188,7 @@ export function AgreementDetail({ id }: { id: string }) {
                 <p className="mt-1.5 text-[14px] leading-relaxed text-ink-soft">{a.scope}</p>
                 <div className="mt-3 grid gap-2 sm:grid-cols-3">
                   {[["Nilai layanan", formatIDR(a.value)], ["Jadwal", a.schedule], ["Lokasi", a.location]].map(([l, v]) => (
-                    <div key={l} className="rounded-lg border border-line bg-white p-2.5"><div className="text-[11px] font-bold uppercase tracking-wider text-muted">{l}</div><div className="mt-1 text-[13px] font-semibold leading-snug text-ink">{v}</div></div>
+                    <div key={l} className="rounded-lg border border-line bg-white p-2.5"><div className="text-[12px] font-bold uppercase tracking-wider text-muted">{l}</div><div className="mt-1 text-[13px] font-semibold leading-snug text-ink">{v}</div></div>
                   ))}
                 </div>
               </div>
@@ -216,7 +216,7 @@ export function AgreementDetail({ id }: { id: string }) {
                     <thead className="bg-[#FBFAF6] text-muted"><tr><th className="px-2.5 py-1.5 font-bold">Termin</th><th className="px-2 py-1.5 font-bold">Jatuh tempo</th><th className="px-2 py-1.5 text-right font-bold">Nominal</th><th className="px-2.5 py-1.5 font-bold">Status</th></tr></thead>
                     <tbody className="divide-y divide-line/70">
                       {a.terms.map((t) => (
-                        <tr key={t.label}><td className="px-2.5 py-1.5 font-medium text-ink">{t.label} ({t.percentage}%)</td><td className="px-2 py-1.5 text-muted">{t.due}</td><td className="px-2 py-1.5 text-right font-semibold text-ink">{formatIDR(t.amount)}</td><td className="px-2.5 py-1.5"><Badge tone={t.status === "Lunas" ? "green" : t.status === "Menunggu" ? "amber" : "blue"} className="px-1 py-0.5 text-[11px]">{t.status}</Badge></td></tr>
+                        <tr key={t.label}><td className="px-2.5 py-1.5 font-medium text-ink">{t.label} ({t.percentage}%)</td><td className="px-2 py-1.5 text-muted">{t.due}</td><td className="px-2 py-1.5 text-right font-semibold text-ink">{formatIDR(t.amount)}</td><td className="px-2.5 py-1.5"><Badge tone={t.status === "Lunas" ? "green" : t.status === "Menunggu" ? "amber" : "blue"} className="px-1 py-0.5 text-[12px]">{t.status}</Badge></td></tr>
                       ))}
                     </tbody>
                   </table>
@@ -240,12 +240,12 @@ export function AgreementDetail({ id }: { id: string }) {
               <div className="mt-5 grid gap-3 border-t border-line pt-4 sm:grid-cols-2">
                 {a.approvals.slice(0, 2).map((ap) => (
                   <div key={ap.party} className="rounded-lg border border-dashed border-[#CFC6B4] bg-[#FBFAF6] p-2.5">
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-muted">{ap.role}</div>
+                    <div className="text-[12px] font-bold uppercase tracking-wider text-muted">{ap.role}</div>
                     <div className="mt-1 font-display text-[15px] italic text-ink">{ap.party}</div>
                     <div className="mt-2 flex items-center gap-1 text-[12px]">
                       {ap.state === "Menyetujui" ? <><CheckCircle2 className="h-3 w-3 text-[#4C8068]" /><span className="font-semibold text-[#2B5949]">Disetujui {ap.date}</span></> : <><Clock className="h-3 w-3 text-[#C08D3B]" /><span className="font-semibold text-[#855A16]">Menunggu persetujuan</span></>}
                     </div>
-                    <div className="mt-1 text-[11px] text-muted">Tanda tangan elektronik belum tersedia pada prototipe.</div>
+                    <div className="mt-1 text-[12px] text-muted">Tanda tangan elektronik belum tersedia pada prototipe.</div>
                   </div>
                 ))}
               </div>
@@ -279,7 +279,7 @@ export function AgreementDetail({ id }: { id: string }) {
               ].map((s, i) => (
                 <div key={s.t} className="flex gap-2">
                   <div className="flex flex-col items-center">
-                    <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[11px]", s.done ? "border-ink bg-ink text-cream" : s.active ? "border-sand bg-sand/20 text-sand-deep" : "border-line bg-white text-muted")}>{s.done ? <Check className="h-2 w-2" strokeWidth={3} /> : i + 1}</span>
+                    <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[12px]", s.done ? "border-ink bg-ink text-cream" : s.active ? "border-sand bg-sand/20 text-sand-deep" : "border-line bg-white text-muted")}>{s.done ? <Check className="h-2 w-2" strokeWidth={3} /> : i + 1}</span>
                     {i < 5 && <span className={cn("mt-0.5 h-full min-h-[10px] w-px", s.done ? "bg-ink/30" : "bg-line")} />}
                   </div>
                   <div className="pb-1"><div className={cn("text-[13px] font-semibold", s.done ? "text-ink" : "text-muted")}>{s.t}</div><div className="text-[12px] text-muted">{s.s}</div></div>
@@ -306,9 +306,9 @@ export function AgreementDetail({ id }: { id: string }) {
             <div className="divide-y divide-line/70">
               {a.versions.map((v, i) => (
                 <div key={v.version + i} className="px-4 py-2.5">
-                  <div className="flex items-center justify-between gap-2"><span className="text-[13px] font-bold text-ink">{v.version}</span><Badge tone={v.state === "Disepakati" ? "green" : v.state === "Draf" ? "neutral" : "amber"} className="px-1 py-0.5 text-[11px]">{v.state}</Badge></div>
+                  <div className="flex items-center justify-between gap-2"><span className="text-[13px] font-bold text-ink">{v.version}</span><Badge tone={v.state === "Disepakati" ? "green" : v.state === "Draf" ? "neutral" : "amber"} className="px-1 py-0.5 text-[12px]">{v.state}</Badge></div>
                   <div className="mt-0.5 text-[12px] leading-relaxed text-muted">{v.note}</div>
-                  <div className="mt-0.5 text-[11px] text-muted/80">{v.date} · {v.by}</div>
+                  <div className="mt-0.5 text-[12px] text-muted/80">{v.date} · {v.by}</div>
                 </div>
               ))}
             </div>
@@ -512,13 +512,13 @@ export function AgreementWizard() {
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-[1fr_1fr]">
                 <Card className="p-3">
-                  <div className="flex items-center justify-between"><span className="text-[12px] font-bold uppercase tracking-wider text-muted">Pihak pertama</span><Badge tone="green" className="text-[11px]"><BadgeCheck className="h-2.5 w-2.5" /> Terverifikasi</Badge></div>
+                  <div className="flex items-center justify-between"><span className="text-[12px] font-bold uppercase tracking-wider text-muted">Pihak pertama</span><Badge tone="green" className="text-[12px]"><BadgeCheck className="h-2.5 w-2.5" /> Terverifikasi</Badge></div>
                   <Field label="Nama pengguna" className="mt-2"><Input value={form.couple} onChange={(e) => set("couple", e.target.value)} /></Field>
                   <Field label="Surel" className="mt-2"><Input value={form.coupleEmail} onChange={(e) => set("coupleEmail", e.target.value)} /></Field>
                   <Field label="Telepon" className="mt-2"><Input value={form.couplePhone} onChange={(e) => set("couplePhone", e.target.value)} /></Field>
                 </Card>
                 <Card className="p-3">
-                  <div className="flex items-center justify-between"><span className="text-[12px] font-bold uppercase tracking-wider text-muted">Pihak kedua</span><Badge tone="sand" className="text-[11px]">Pelaku budaya</Badge></div>
+                  <div className="flex items-center justify-between"><span className="text-[12px] font-bold uppercase tracking-wider text-muted">Pihak kedua</span><Badge tone="sand" className="text-[12px]">Pelaku budaya</Badge></div>
                   <Field label="Pilih pelaku budaya" className="mt-2" required>
                     <Select value={form.partnerId} onChange={(e) => { const p = practitioners.find((x) => x.id === e.target.value)!; setForm((f) => ({ ...f, partnerId: p.id, partnerRep: p.name, partnerEmail: `halo@${p.id.replace(/-/g, "")}.id` })); }}>
                       {practitioners.map((p) => <option key={p.id} value={p.id}>{p.name} — {p.category}</option>)}
@@ -634,9 +634,9 @@ export function AgreementWizard() {
             <div className="space-y-3">
               <Alert tone="trust" title="Tinjau sebelum mengirim">Periksa nomor, identitas, nilai, dan termin. Setelah dikirim, pelaku budaya akan meninjau versi ini dan dapat mengajukan perubahan.</Alert>
               <Card className="overflow-hidden">
-                <div className="border-b border-line bg-[#FBFAF6] px-4 py-3"><div className="flex items-center gap-2"><LogoMark className="h-7 w-7" /><div><div className="font-display text-[15px] font-semibold tracking-wider text-ink">VAKSARA</div><div className="text-[11px] uppercase tracking-wider text-muted">Draf perjanjian layanan · v1.0</div></div></div></div>
+                <div className="border-b border-line bg-[#FBFAF6] px-4 py-3"><div className="flex items-center gap-2"><LogoMark className="h-7 w-7" /><div><div className="font-display text-[15px] font-semibold tracking-wider text-ink">VAKSARA</div><div className="text-[12px] uppercase tracking-wider text-muted">Draf perjanjian layanan · v1.0</div></div></div></div>
                 <div className="grid gap-2 p-4 sm:grid-cols-2">
-                  {[["Pihak pertama", `${form.couple} · ${form.coupleEmail}`], ["Pihak kedua", `${form.partnerRep} · ${form.partnerEmail}`], ["Layanan", form.service], ["Kategori", form.category], ["Lokasi", `${form.venue}, ${form.address}`], ["Jadwal", `${form.date} · ${form.start}–${form.end} ${form.timezone}`]].map(([l, v]) => <div key={l} className="rounded-lg border border-line bg-white p-2.5"><div className="text-[11px] font-bold uppercase tracking-wider text-muted">{l}</div><div className="mt-1 text-[13px] font-medium leading-snug text-ink">{v}</div></div>)}
+                  {[["Pihak pertama", `${form.couple} · ${form.coupleEmail}`], ["Pihak kedua", `${form.partnerRep} · ${form.partnerEmail}`], ["Layanan", form.service], ["Kategori", form.category], ["Lokasi", `${form.venue}, ${form.address}`], ["Jadwal", `${form.date} · ${form.start}–${form.end} ${form.timezone}`]].map(([l, v]) => <div key={l} className="rounded-lg border border-line bg-white p-2.5"><div className="text-[12px] font-bold uppercase tracking-wider text-muted">{l}</div><div className="mt-1 text-[13px] font-medium leading-snug text-ink">{v}</div></div>)}
                 </div>
                 <div className="border-t border-line px-4 py-2.5"><div className="flex items-center justify-between text-[14px]"><span className="text-muted">Nilai layanan</span><span className="font-bold text-ink">{formatIDR(totalNum)}</span></div><div className="mt-1 flex items-center justify-between text-[13px]"><span className="text-muted">DP {dpPct}%</span><span className="font-semibold text-ink">{formatIDR(dpAmount)}</span></div></div>
               </Card>
@@ -677,10 +677,10 @@ export function AgreementWizard() {
 
         <aside className="space-y-3 xl:sticky xl:top-[76px] xl:self-start">
           <Card className="overflow-hidden">
-            <div className="border-b border-line bg-[#FBFAF6] px-4 py-3"><div className="flex items-center justify-between"><h3 className="text-[14px] font-bold text-ink">Pratinjau kesepakatan</h3><Badge tone="neutral" className="text-[11px]">Draf</Badge></div><p className="mt-0.5 text-[12px] text-muted">Diperbarui saat Anda mengisi formulir.</p></div>
+            <div className="border-b border-line bg-[#FBFAF6] px-4 py-3"><div className="flex items-center justify-between"><h3 className="text-[14px] font-bold text-ink">Pratinjau kesepakatan</h3><Badge tone="neutral" className="text-[12px]">Draf</Badge></div><p className="mt-0.5 text-[12px] text-muted">Diperbarui saat Anda mengisi formulir.</p></div>
             <div className="space-y-2.5 p-4">
               <div className="rounded-lg bg-ink p-3 text-cream">
-                <div className="text-[11px] uppercase tracking-wider text-cream/45">Perkiraan total</div>
+                <div className="text-[12px] uppercase tracking-wider text-cream/45">Perkiraan total</div>
                 <div className="mt-1 font-display text-[1.35rem] font-semibold leading-none">{formatIDR(totalNum)}</div>
                 <div className="mt-1 text-[12px] text-cream/55">DP {dpPct}% · {formatIDR(dpAmount)}</div>
               </div>

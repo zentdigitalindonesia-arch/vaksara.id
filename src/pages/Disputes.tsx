@@ -137,7 +137,7 @@ export default function DisputeCenter({ id }: { id?: string }) {
                 const active = selected?.id === d.id;
                 return (
                   <button key={d.id} onClick={() => { setSelectedId(d.id); navigate(`sengketa/${d.id}`); }} className={cn("block w-full px-3 py-3 text-left transition-colors", active ? "bg-[#F7F3E9]" : "hover:bg-cream/60")}>
-                    <div className="flex items-start justify-between gap-2"><span className="text-[12px] font-bold text-sand-deep">{d.number}</span><Badge tone={statusTone(d.status)} dot className="shrink-0 px-1.5 py-0.5 text-[11px]">{d.status}</Badge></div>
+                    <div className="flex items-start justify-between gap-2"><span className="text-[12px] font-bold text-sand-deep">{d.number}</span><Badge tone={statusTone(d.status)} dot className="shrink-0 px-1.5 py-0.5 text-[12px]">{d.status}</Badge></div>
                     <div className="mt-1 text-[14px] font-semibold leading-snug text-ink">{d.title}</div>
                     <div className="mt-1 flex items-center justify-between gap-2 text-[12px] text-muted"><span className="truncate">{d.responder}</span><span className="shrink-0">{d.updated}</span></div>
                     {active && <div className="mt-1.5 flex items-center gap-1 text-[12px] font-semibold text-sand-deep"><span className="h-1 w-1 rounded-full bg-sand" />Sedang dibuka<ArrowRight className="ml-auto h-2.5 w-2.5" /></div>}
@@ -160,7 +160,7 @@ export default function DisputeCenter({ id }: { id?: string }) {
               <Card className="overflow-hidden">
                 <div className="flex flex-wrap items-start justify-between gap-2 border-b border-line bg-[#FBFAF6] px-4 py-3">
                   <div>
-                    <div className="flex flex-wrap items-center gap-1.5"><span className="text-[13px] font-bold text-sand-deep">{selected.number}</span><Badge tone={statusTone(selected.status)} dot className="text-[12px]">{selected.status}</Badge><Badge tone="neutral" className="text-[11px]">Prototipe</Badge></div>
+                    <div className="flex flex-wrap items-center gap-1.5"><span className="text-[13px] font-bold text-sand-deep">{selected.number}</span><Badge tone={statusTone(selected.status)} dot className="text-[12px]">{selected.status}</Badge><Badge tone="neutral" className="text-[12px]">Prototipe</Badge></div>
                     <h2 className="mt-1 font-display text-[1.25rem] font-semibold leading-snug text-ink">{selected.title}</h2>
                     <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-muted"><span>Dibuka oleh {selected.opener}</span><span>·</span><span>{selected.opened}</span><span>·</span><span>Trust Officer: {selected.officer}</span></div>
                   </div>
@@ -180,7 +180,7 @@ export default function DisputeCenter({ id }: { id?: string }) {
                     const currentIdx = allStatuses.indexOf(selected.status);
                     const done = i < currentIdx || selected.status === "Selesai dengan Kesepakatan";
                     const active = s === selected.status;
-                    return <span key={s} className={cn("flex shrink-0 items-center gap-1 rounded px-1.5 py-1 text-[11px] font-semibold", active ? "bg-ink text-cream" : done ? "bg-[#EDF4EF] text-[#2B5949]" : s === "Tidak Terselesaikan" ? "bg-[#F9ECE9] text-[#933A2F]" : "bg-[#F4F2EC] text-muted")}>{done && !active && <Check className="h-2 w-2" />}{s}</span>;
+                    return <span key={s} className={cn("flex shrink-0 items-center gap-1 rounded px-1.5 py-1 text-[12px] font-semibold", active ? "bg-ink text-cream" : done ? "bg-[#EDF4EF] text-[#2B5949]" : s === "Tidak Terselesaikan" ? "bg-[#F9ECE9] text-[#933A2F]" : "bg-[#F4F2EC] text-muted")}>{done && !active && <Check className="h-2 w-2" />}{s}</span>;
                   })}
                 </div>
                 <div className="p-4">
@@ -202,8 +202,8 @@ export default function DisputeCenter({ id }: { id?: string }) {
                     {selected.messages.map((m, i) => (
                       <div key={i} className={cn("rounded-lg border p-2.5", m.role === "Trust Officer" ? "border-[#D5E3EB] bg-[#F4F8FA]" : "border-line bg-white")}>
                         <div className="flex flex-wrap items-center justify-between gap-1">
-                          <div className="flex items-center gap-1.5"><Avatar name={m.by} size="xs" /><span className="text-[13px] font-bold text-ink">{m.by}</span><Badge tone={m.role === "Vendor" ? "sand" : m.role === "Trust Officer" ? "blue" : "neutral"} className="px-1 py-0 text-[11px]">{m.role}</Badge></div>
-                          <span className="text-[11px] text-muted">{m.date}</span>
+                          <div className="flex items-center gap-1.5"><Avatar name={m.by} size="xs" /><span className="text-[13px] font-bold text-ink">{m.by}</span><Badge tone={m.role === "Vendor" ? "sand" : m.role === "Trust Officer" ? "blue" : "neutral"} className="px-1 py-0 text-[12px]">{m.role}</Badge></div>
+                          <span className="text-[12px] text-muted">{m.date}</span>
                         </div>
                         <p className="mt-1 text-[14px] leading-relaxed text-ink-soft">{m.text}</p>
                       </div>
@@ -239,7 +239,7 @@ export default function DisputeCenter({ id }: { id?: string }) {
                     {selected.evidence.map((f) => (
                       <div key={f.name} className="flex items-center gap-2 rounded-lg border border-line bg-white px-2.5 py-2">
                         <FileText className="h-3.5 w-3.5 shrink-0 text-sand-deep" />
-                        <div className="min-w-0 flex-1"><div className="truncate text-[13px] font-semibold text-ink">{f.name}</div><div className="text-[11px] text-muted">{f.from} · {f.date}</div></div>
+                        <div className="min-w-0 flex-1"><div className="truncate text-[13px] font-semibold text-ink">{f.name}</div><div className="text-[12px] text-muted">{f.from} · {f.date}</div></div>
                         <button onClick={() => toast("Pratinjau bukti tersedia pada implementasi produksi dengan kontrol akses.", "info")} className="shrink-0 rounded p-0.5 text-muted hover:text-ink" aria-label={`Lihat ${f.name}`}><Eye className="h-3 w-3" /></button>
                       </div>
                     ))}

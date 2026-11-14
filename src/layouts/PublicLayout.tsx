@@ -246,8 +246,8 @@ export function AuthModal({ open, mode, onClose }: { open: boolean; mode: "masuk
     <p className="mt-3 text-center text-[13px] text-muted">Belum punya akun? <button type="button" className="font-semibold text-ink underline" onClick={() => go("akun/daftar")}>Daftar sebagai keluarga</button> atau <button type="button" className="font-semibold text-ink underline" onClick={() => go("vendor/daftar")}>sebagai pelaku budaya</button></p>
   </Modal>;
   return <Modal open={open} onClose={onClose} title="Untuk apa Anda menggunakan VAKSARA?" description="Pilih peran agar langkah berikutnya sesuai kebutuhan Anda."><div className="space-y-3">
-    <Button full variant="secondary" onClick={() => go("akun/daftar")}>Calon pengantin / keluarga</Button><p className="text-xs text-muted">Cari layanan, susun rangkaian acara, dan kelola kerja sama.</p>
-    <Button full variant="secondary" onClick={() => go("vendor/daftar")}>Vendor / pelaku budaya</Button><p className="text-xs text-muted">Terima permintaan, kirim penawaran, dan kelola layanan.</p>
+    <Button full variant="secondary" onClick={() => go("akun/daftar")}>Calon pengantin / keluarga</Button><p className="text-[12px] text-muted">Cari layanan, susun rangkaian acara, dan kelola kerja sama.</p>
+    <Button full variant="secondary" onClick={() => go("vendor/daftar")}>Vendor / pelaku budaya</Button><p className="text-[12px] text-muted">Terima permintaan, kirim penawaran, dan kelola layanan.</p>
     <Alert tone="info" title="Demo lokal">Pendaftaran menggunakan simulasi OTP email dan WhatsApp. Ingin langsung mencoba? Pilih Masuk dan gunakan akun demo.</Alert>
   </div></Modal>;
 }

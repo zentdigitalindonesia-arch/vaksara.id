@@ -74,7 +74,7 @@ export default function Knowledge() {
                   </div>
                 </div>
                 <div className="p-3.5">
-                  <div className="flex items-center gap-1.5"><Badge tone={statusTone(a.status)} dot className="px-1.5 py-0.5 text-[11px]">{a.status}</Badge><span className="text-[12px] text-muted">{a.validator}</span></div>
+                  <div className="flex items-center gap-1.5"><Badge tone={statusTone(a.status)} dot className="px-1.5 py-0.5 text-[12px]">{a.status}</Badge><span className="text-[12px] text-muted">{a.validator}</span></div>
                   <h3 className="mt-2 text-[15px] font-bold leading-snug text-ink">{a.title}</h3>
                   <p className="mt-1 line-clamp-2 text-[14px] leading-relaxed text-muted">{a.excerpt}</p>
                   <div className="mt-2 flex items-center justify-between"><span className="text-[12px] text-muted">Sumber: {a.source.split("&")[0]}</span><span className="flex items-center gap-1 text-[13px] font-bold text-ink">Baca <ArrowUpRight className="h-2.5 w-2.5" /></span></div>
@@ -98,7 +98,7 @@ export default function Knowledge() {
           <div className="rounded-2xl border border-line bg-white p-4">
             <div className="flex items-center gap-1.5 text-[14px] font-bold text-ink"><ShieldCheck className="h-3.5 w-3.5 text-sand-deep" /> Cara kami menandai</div>
             <div className="mt-2 space-y-2">
-              {[["Terverifikasi", "Ditunjau terhadap sumber & konteks.", "green"], ["Dalam tinjauan", "Sumber atau peninjau belum lengkap.", "amber"], ["Perlu koreksi", "Ditemukan ketidaktepatan; sedang diperbaiki.", "red"]].map(([l, d, t]) => <div key={l} className="flex gap-1.5"><Badge tone={t} className="mt-0.5 h-fit px-1.5 py-0.5 text-[11px]">{l}</Badge><p className="text-[12px] leading-relaxed text-muted">{d}</p></div>)}
+              {[["Terverifikasi", "Ditunjau terhadap sumber & konteks.", "green"], ["Dalam tinjauan", "Sumber atau peninjau belum lengkap.", "amber"], ["Perlu koreksi", "Ditemukan ketidaktepatan; sedang diperbaiki.", "red"]].map(([l, d, t]) => <div key={l} className="flex gap-1.5"><Badge tone={t} className="mt-0.5 h-fit px-1.5 py-0.5 text-[12px]">{l}</Badge><p className="text-[12px] leading-relaxed text-muted">{d}</p></div>)}
             </div>
           </div>
         </div>

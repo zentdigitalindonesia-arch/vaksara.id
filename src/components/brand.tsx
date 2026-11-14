@@ -29,7 +29,7 @@ export function Logo({ tone = "dark", compact = false }: { tone?: "dark" | "ligh
           </span>
           <span
             className={cn(
-              "mt-1.5 hidden text-[9px] font-semibold uppercase tracking-[0.22em] sm:block",
+              "mt-1.5 hidden text-[12px] font-semibold uppercase tracking-[0.22em] sm:block",
               tone === "dark" ? "text-[#A84329]/80" : "text-cream/60"
             )}
           >

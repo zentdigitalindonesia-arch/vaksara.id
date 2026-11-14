@@ -755,7 +755,7 @@ export function StepDots({ steps, current, onStep }: { steps: string[]; current:
           >
             <span className={cn("h-[3px] w-full rounded-full transition-colors", done ? "bg-ink" : active ? "bg-sand" : "bg-[#E7E1D5]")} />
             <span className={cn("flex items-center gap-2 text-[12px] font-bold uppercase tracking-wide", active ? "text-ink" : done ? "text-ink-soft" : "text-muted/70")}>
-              <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[12px]", done ? "bg-ink text-cream" : active ? "bg-sand text-[#1D2B26]" : "border border-line text-muted")}>
+              <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[12px]", done ? "bg-ink text-cream" : active ? "bg-sand text-[#1D2B26]" : "border border-line text-muted")}>
                 {done ? <Check className="h-2.5 w-2.5" strokeWidth={3} /> : i + 1}
               </span>
               <span className="truncate">{s}</span>

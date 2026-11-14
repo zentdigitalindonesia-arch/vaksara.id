@@ -187,7 +187,7 @@ export default function PlannerDashboard({ mode = "overview" }: { mode?: "overvi
                     </div>
                     <div className="text-right">
                       <div className="text-[14px] font-bold text-ink">{formatIDR(p.amount)}</div>
-                      <Badge tone={p.kind === "gateway" ? "blue" : "neutral"} className="mt-0.5 px-1 py-0.5 text-[11px]">{p.status}</Badge>
+                      <Badge tone={p.kind === "gateway" ? "blue" : "neutral"} className="mt-0.5 px-1 py-0.5 text-[12px]">{p.status}</Badge>
                     </div>
                   </div>
                 ))}
@@ -309,7 +309,7 @@ export default function PlannerDashboard({ mode = "overview" }: { mode?: "overvi
                 {[["Hari", Math.floor(days)], ["Jam", 12], ["Menit", 30], ["Detik", "—"]].map(([l, v]) => (
                   <div key={l as string} className="rounded-lg border border-line bg-[#FBFAF6] py-2 text-center">
                     <div className="text-[16px] font-bold leading-none text-ink">{v as React.ReactNode}</div>
-                    <div className="mt-1 text-[11px] uppercase tracking-wider text-muted">{l as string}</div>
+                    <div className="mt-1 text-[12px] uppercase tracking-wider text-muted">{l as string}</div>
                   </div>
                 ))}
               </div>
@@ -344,7 +344,7 @@ export default function PlannerDashboard({ mode = "overview" }: { mode?: "overvi
                   <div key={r.time} className="flex items-start gap-2.5 rounded-lg border border-line bg-white px-2.5 py-2">
                     <span className="w-8 shrink-0 pt-0.5 text-[13px] font-bold text-ink">{r.time}</span>
                     <div className="min-w-0 flex-1 border-l border-line pl-2"><div className="text-[14px] font-medium leading-snug text-ink">{r.title}</div><div className="text-[12px] text-muted">{r.owner}</div></div>
-                    <Badge tone={r.type === "Prosesi" ? "sand" : "neutral"} className="shrink-0 px-1.5 py-0.5 text-[11px]">{r.type}</Badge>
+                    <Badge tone={r.type === "Prosesi" ? "sand" : "neutral"} className="shrink-0 px-1.5 py-0.5 text-[12px]">{r.type}</Badge>
                   </div>
                 ))}
               </div>

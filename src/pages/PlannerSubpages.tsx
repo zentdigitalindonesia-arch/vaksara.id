@@ -280,7 +280,7 @@ function VendorPage() {
             <div className="flex items-center gap-2.5 border-b border-line px-3 py-2.5">
               <img src={p.image} alt="" className="h-9 w-9 rounded-lg object-cover" />
               <div className="min-w-0 flex-1"><div className="truncate text-[14px] font-bold text-ink">{p.name}</div><div className="truncate text-[12px] text-muted">{p.category} · {p.city}</div></div>
-              <Badge tone={i === 0 ? "amber" : i === 1 ? "green" : i === 2 ? "blue" : "neutral"} className="shrink-0 text-[11px]">{statuses[i]}</Badge>
+              <Badge tone={i === 0 ? "amber" : i === 1 ? "green" : i === 2 ? "blue" : "neutral"} className="shrink-0 text-[12px]">{statuses[i]}</Badge>
             </div>
             <div className="p-3">
               <div className="flex items-center justify-between text-[13px]"><span className="text-muted">Nilai layanan</span><span className="font-bold text-ink">{formatIDR(p.priceFrom * (i + 1), true)}</span></div>
@@ -359,7 +359,7 @@ function SchedulePage() {
                       <p className={cn("min-w-0 flex-1 text-[14px] font-semibold leading-snug", task.done ? "text-muted line-through" : "text-ink")}>{task.title}</p>
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-1.5 pl-[26px]">
-                      <Badge tone={task.priority === "Tinggi" ? "red" : task.priority === "Sedang" ? "amber" : "neutral"} className="px-2 py-0.5 text-[11px]">{task.priority}</Badge>
+                      <Badge tone={task.priority === "Tinggi" ? "red" : task.priority === "Sedang" ? "amber" : "neutral"} className="px-2 py-0.5 text-[12px]">{task.priority}</Badge>
                       <span className="text-[12px] text-muted">{task.category} · {task.due}</span>
                     </div>
                     <div className="mt-2 flex justify-end gap-1">
@@ -592,7 +592,7 @@ function GuestPage() {
                     <td className="px-4 py-2.5"><div className="flex items-center gap-2"><Avatar name={g.name} size="xs" /><span className="font-semibold text-ink">{g.name}</span></div></td>
                     <td className="px-2 py-2.5 text-ink-soft">{g.group}</td>
                     <td className="px-2 py-2.5 text-center font-semibold">{g.party}</td>
-                    <td className="px-2 py-2.5"><Badge tone={g.rsvp === "Hadir" ? "green" : g.rsvp === "Menunggu" ? "amber" : "red"} className="text-[11px]">{g.rsvp}</Badge></td>
+                    <td className="px-2 py-2.5"><Badge tone={g.rsvp === "Hadir" ? "green" : g.rsvp === "Menunggu" ? "amber" : "red"} className="text-[12px]">{g.rsvp}</Badge></td>
                     <td className="px-2 py-2.5 text-muted">{g.table}</td>
                     <td className="px-4 py-2.5"><span className="text-[12px] text-muted">{g.invitation}</span></td>
                   </tr>

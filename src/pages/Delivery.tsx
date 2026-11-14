@@ -112,7 +112,7 @@ export function DeliveryTracker({ id }: { id: string }) {
                             <h3 className={cn("text-[14px] font-bold", isDone ? "text-ink" : "text-ink-soft")}>{m.title}</h3>
                             {m.date && <div className="mt-0.5 flex items-center gap-1 text-[12px] text-muted"><CalendarDays className="h-2.5 w-2.5" />{m.date}</div>}
                           </div>
-                          <Badge tone={isDone ? "green" : isCurrent ? "sand" : "neutral"} dot className="shrink-0 text-[11px]">{isDone ? "Selesai" : isCurrent ? "Berjalan" : m.state}</Badge>
+                          <Badge tone={isDone ? "green" : isCurrent ? "sand" : "neutral"} dot className="shrink-0 text-[12px]">{isDone ? "Selesai" : isCurrent ? "Berjalan" : m.state}</Badge>
                         </div>
                         <p className="mt-1 text-[13px] leading-relaxed text-muted">{m.note}</p>
                         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -161,7 +161,7 @@ export function DeliveryTracker({ id }: { id: string }) {
             <div className="space-y-2">
               {[["Termin 1 — DP 30%", 5550000, "manual", "Tercatat manual"], ["Termin 2 — Persiapan", 7400000, "gateway", "Terverifikasi"], ["Termin 3 — Pelunasan", 5550000, "manual", "Menunggu BAST"]].map(([l, v, kind, s]) => (
                 <div key={l as string} className="flex items-start justify-between gap-2">
-                  <div><div className="text-[13px] font-semibold text-ink">{l as string}</div><div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted">{kind === "gateway" ? <ShieldCheck className="h-2.5 w-2.5 text-[#477C96]" /> : <FileText className="h-2.5 w-2.5" />}{s as string}</div></div>
+                  <div><div className="text-[13px] font-semibold text-ink">{l as string}</div><div className="mt-0.5 flex items-center gap-1 text-[12px] text-muted">{kind === "gateway" ? <ShieldCheck className="h-2.5 w-2.5 text-[#477C96]" /> : <FileText className="h-2.5 w-2.5" />}{s as string}</div></div>
                   <span className="text-[13px] font-bold text-ink">{formatIDR(v as number, true)}</span>
                 </div>
               ))}
@@ -221,7 +221,7 @@ export function BastList() {
               <div className="flex items-start gap-2.5">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sand-light text-sand-deep"><ClipboardCheck className="h-4 w-4" /></span>
                 <div>
-                  <div className="flex flex-wrap items-center gap-1.5"><h3 className="text-[15px] font-bold text-ink">{a.service}</h3><Badge tone={a.status === "Menunggu BAST" ? "amber" : statusTone(a.status)} dot className="text-[11px]">{a.status === "Menunggu BAST" ? "Menunggu keputusan" : a.status}</Badge></div>
+                  <div className="flex flex-wrap items-center gap-1.5"><h3 className="text-[15px] font-bold text-ink">{a.service}</h3><Badge tone={a.status === "Menunggu BAST" ? "amber" : statusTone(a.status)} dot className="text-[12px]">{a.status === "Menunggu BAST" ? "Menunggu keputusan" : a.status}</Badge></div>
                   <p className="mt-0.5 text-[13px] text-muted">{a.number} · {a.partner}</p>
                   <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-muted"><span className="flex items-center gap-1"><CalendarDays className="h-2.5 w-2.5" /> {a.schedule}</span><span className="flex items-center gap-1"><MapPin className="h-2.5 w-2.5" /> {a.location.split(",")[0]}</span><span className="flex items-center gap-1"><Paperclip className="h-2.5 w-2.5" /> {a.attachments.length || 2} bukti</span></div>
                 </div>
@@ -358,7 +358,7 @@ export function BastDetail({ id }: { id: string }) {
               <button onClick={() => navigate(`perjanjian/${a.id}`)} className="flex items-center gap-1 text-[13px] font-bold text-ink underline decoration-sand underline-offset-2">Buka perjanjian <ArrowUpRight className="h-2.5 w-2.5" /></button>
             </div>
             <div className="grid gap-2 p-4 sm:grid-cols-2">
-              {[["Nomor perjanjian", a.number], ["Nilai layanan", formatIDR(a.value)], ["Pihak kedua", a.partner], ["Jadwal layanan", a.schedule], ["Lokasi", a.location], ["Tanggal penyelesaian aktual", "12 Juni 2027 · 15.30 WITA"]].map(([l, v]) => <div key={l} className="rounded-lg border border-line bg-white p-2.5"><div className="text-[11px] font-bold uppercase tracking-wider text-muted">{l}</div><div className="mt-1 text-[13px] font-semibold leading-snug text-ink">{v}</div></div>)}
+              {[["Nomor perjanjian", a.number], ["Nilai layanan", formatIDR(a.value)], ["Pihak kedua", a.partner], ["Jadwal layanan", a.schedule], ["Lokasi", a.location], ["Tanggal penyelesaian aktual", "12 Juni 2027 · 15.30 WITA"]].map(([l, v]) => <div key={l} className="rounded-lg border border-line bg-white p-2.5"><div className="text-[12px] font-bold uppercase tracking-wider text-muted">{l}</div><div className="mt-1 text-[13px] font-semibold leading-snug text-ink">{v}</div></div>)}
             </div>
           </Card>
 
@@ -371,7 +371,7 @@ export function BastDetail({ id }: { id: string }) {
                     <div className="text-[14px] font-semibold leading-snug text-ink">{d.item}</div>
                     {d.note && <div className="mt-0.5 flex items-center gap-1 text-[12px] font-medium text-[#933A2F]"><AlertTriangle className="h-2.5 w-2.5" />{d.note}</div>}
                   </div>
-                  <span className="shrink-0 rounded bg-[#F1EFE9] px-1.5 py-0.5 text-[11px] text-muted">{d.qty}</span>
+                  <span className="shrink-0 rounded bg-[#F1EFE9] px-1.5 py-0.5 text-[12px] text-muted">{d.qty}</span>
                 </div>
               ))}
             </div>
@@ -385,7 +385,7 @@ export function BastDetail({ id }: { id: string }) {
               {[{ name: "Dokumentasi-prasmanan-01.jpg", by: a.partner, size: "1,2 MB" }, { name: "Daftar-hidangan-final.pdf", by: a.partner, size: "320 KB" }, ...files.map((f) => ({ ...f, by: "Nurul Amalia" }))].map((f) => (
                 <div key={f.name} className="flex items-center gap-2 rounded-lg border border-line bg-white px-2.5 py-2">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-sand-light text-sand-deep"><FileText className="h-3.5 w-3.5" /></span>
-                  <div className="min-w-0 flex-1"><div className="truncate text-[13px] font-semibold text-ink">{f.name}</div><div className="text-[11px] text-muted">{f.by} · {f.size}</div></div>
+                  <div className="min-w-0 flex-1"><div className="truncate text-[13px] font-semibold text-ink">{f.name}</div><div className="text-[12px] text-muted">{f.by} · {f.size}</div></div>
                   <button onClick={() => toast("Pratinjau berkas tidak tersedia pada prototipe.", "info")} className="shrink-0 rounded p-0.5 text-muted hover:text-ink" aria-label={`Lihat ${f.name}`}><ArrowUpRight className="h-3 w-3" /></button>
                 </div>
               ))}
@@ -398,7 +398,7 @@ export function BastDetail({ id }: { id: string }) {
               <div className="space-y-2">
                 {[["BAST diajukan", true], ["Keputusan pengantin", decision !== "none"], ["Konfirmasi vendor", decision === "accepted"], ["BAST selesai", decision === "accepted"]].map(([l, done], i) => (
                   <div key={l as string} className="flex items-center gap-2">
-                    <span className={cn("flex h-4 w-4 items-center justify-center rounded-full border text-[11px]", done ? "border-ink bg-ink text-cream" : "border-line bg-white text-muted")}>{done ? <Check className="h-2 w-2" strokeWidth={3} /> : i + 1}</span>
+                    <span className={cn("flex h-4 w-4 items-center justify-center rounded-full border text-[12px]", done ? "border-ink bg-ink text-cream" : "border-line bg-white text-muted")}>{done ? <Check className="h-2 w-2" strokeWidth={3} /> : i + 1}</span>
                     <span className={cn("flex-1 text-[13px]", done ? "font-semibold text-ink" : "text-muted")}>{l as string}</span>
                     <span className={cn("text-[12px]", done ? "font-semibold text-[#2B5949]" : "text-muted")}>{done ? "Selesai" : "Menunggu"}</span>
                   </div>
@@ -420,7 +420,7 @@ export function BastDetail({ id }: { id: string }) {
               {history.map((h) => (
                 <div key={h.v + h.date} className="flex items-start gap-2.5 rounded-lg border border-line bg-white p-2.5">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#F1EFE9] text-[12px] font-bold text-ink-soft">{h.v}</span>
-                  <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center justify-between gap-1"><span className="text-[13px] font-semibold text-ink">{h.state}</span><span className="text-[12px] text-muted">{h.date}</span></div><p className="mt-0.5 text-[12px] leading-relaxed text-muted">{h.note}</p><div className="text-[11px] text-muted/80">oleh {h.by}</div></div>
+                  <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center justify-between gap-1"><span className="text-[13px] font-semibold text-ink">{h.state}</span><span className="text-[12px] text-muted">{h.date}</span></div><p className="mt-0.5 text-[12px] leading-relaxed text-muted">{h.note}</p><div className="text-[12px] text-muted/80">oleh {h.by}</div></div>
                 </div>
               ))}
             </div>

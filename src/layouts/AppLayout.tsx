@@ -360,7 +360,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               >
                 <Bell className="h-4 w-4" />
                 {hasUnread && (live
-                  ? <span className="absolute -right-0.5 -top-0.5 min-w-[16px] rounded-full bg-[#A4453B] px-1 text-center text-[10px] font-bold leading-4 text-white ring-2 ring-cream">{server.unread > 9 ? "9+" : server.unread}</span>
+                  ? <span className="absolute -right-0.5 -top-0.5 min-w-[16px] rounded-full bg-[#A4453B] px-1 text-center text-[12px] font-bold leading-4 text-white ring-2 ring-cream">{server.unread > 9 ? "9+" : server.unread}</span>
                   : <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[#A4453B] ring-2 ring-cream" />)}
               </button>
               {notifOpen && (
@@ -469,12 +469,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           {(bottomNav[role] ?? []).map((b) => {
             const active = isActive({ label: b.label, route: b.route, icon: null, exact: b.exact, match: b.match }, path);
             const badge = b.label === "Kerja sama" ? cases.filter(c => nextStep(c).actor === actorOf).length : 0;
-            return <li key={b.route}><button onClick={() => navigate(b.route)} aria-current={active ? "page" : undefined} className={cn("relative flex h-16 w-full flex-col items-center justify-center gap-1 text-[11px] font-semibold", active ? "text-ink" : "text-muted")}>
+            return <li key={b.route}><button onClick={() => navigate(b.route)} aria-current={active ? "page" : undefined} className={cn("relative flex h-16 w-full flex-col items-center justify-center gap-1 text-[0.75rem] font-semibold leading-tight", active ? "text-ink" : "text-muted")}>
               <span className={cn("flex h-7 w-12 items-center justify-center rounded-full", active && "bg-sage")}>{b.icon}</span>{b.label}
-              {badge > 0 && <span className="absolute right-[18%] top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#C0532E] px-1 text-[10px] text-white">{badge}</span>}
+              {badge > 0 && <span className="absolute right-[18%] top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#C0532E] px-1 text-[0.75rem] leading-none text-white">{badge}</span>}
             </button></li>;
           })}
-          <li><button onClick={() => setMobileOpen(true)} className="flex h-16 w-full flex-col items-center justify-center gap-1 text-[11px] font-semibold text-muted"><span className="flex h-7 w-12 items-center justify-center"><Menu className="h-5 w-5" /></span>Menu</button></li>
+          <li><button onClick={() => setMobileOpen(true)} className="flex h-16 w-full flex-col items-center justify-center gap-1 text-[0.75rem] font-semibold leading-tight text-muted"><span className="flex h-7 w-12 items-center justify-center"><Menu className="h-5 w-5" /></span>Menu</button></li>
         </ul>
       </nav>
     </div>

@@ -11,7 +11,7 @@ import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <div className="relative z-[1] bg-ink px-4 py-1.5 text-center text-[11px] text-[#fff4db] sm:py-2">
+    <div className="relative z-[1] bg-ink px-4 py-1.5 text-center text-[12px] text-[#fff4db] sm:py-2">
       {liveBoot() || liveEnabled ? <>
         <span>{liveBoot() ? "Akun VAKSARA · data Anda tersimpan aman di server" : "VAKSARA · platform pernikahan adat Bugis–Makassar"}</span>
       </> : <>

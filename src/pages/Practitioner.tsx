@@ -372,9 +372,9 @@ export default function PractitionerPage({ id }: { id: string }) {
                           selectedDate === a.date ? "border-ink bg-ink text-cream" : a.state === "Terbatas" ? "border-[#EAD7AF] bg-[#FCF6E9] text-[#855A16]" : "border-line bg-white text-ink-soft hover:border-sand"
                         )}
                       >
-                        <span className="block text-[11px] uppercase">{new Date(a.date).toLocaleDateString("id-ID", { weekday: "short" })}</span>
+                        <span className="block text-[12px] uppercase">{new Date(a.date).toLocaleDateString("id-ID", { weekday: "short" })}</span>
                         <span className="block text-[14px] font-bold">{new Date(a.date).getDate()}</span>
-                        <span className={cn("block text-[10px]", selectedDate === a.date ? "text-cream/65" : "text-muted")}>{a.state === "Tersedia" ? "buka" : a.state === "Terbatas" ? "terbatas" : "penuh"}</span>
+                        <span className={cn("block text-[12px]", selectedDate === a.date ? "text-cream/65" : "text-muted")}>{a.state === "Tersedia" ? "buka" : a.state === "Terbatas" ? "terbatas" : "penuh"}</span>
                       </button>
                     ))}
                   </div>

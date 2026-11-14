@@ -99,7 +99,7 @@ export default function TrustDashboard() {
                   {filtered.map((a) => (
                     <tr key={a.id} className="group text-[14px] transition-colors hover:bg-cream/50">
                       <td className="px-4 py-2.5"><button onClick={() => navigate(`perjanjian/${a.id}`)} className="font-bold text-ink hover:underline decoration-sand underline-offset-2">{a.number}</button><div className="text-[12px] text-muted">{a.date}</div></td>
-                      <td className="px-2 py-2.5"><div className="flex items-center gap-1.5"><span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-sand-light text-[11px] font-bold text-[#7A5A2E]">{a.partnerInitials}</span><span className="max-w-[110px] truncate font-medium text-ink">{a.partner}</span></div></td>
+                      <td className="px-2 py-2.5"><div className="flex items-center gap-1.5"><span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-sand-light text-[12px] font-bold text-[#7A5A2E]">{a.partnerInitials}</span><span className="max-w-[110px] truncate font-medium text-ink">{a.partner}</span></div></td>
                       <td className="px-2 py-2.5"><div className="max-w-[130px] truncate text-ink-soft">{a.service}</div><div className="text-[12px] text-muted">{a.category}</div></td>
                       <td className="whitespace-nowrap px-2 py-2.5 text-right font-semibold text-ink">{formatIDR(a.value)}</td>
                       <td className="px-2 py-2.5"><Badge tone={statusTone(a.status)} dot className="text-[12px]">{a.status}</Badge></td>
