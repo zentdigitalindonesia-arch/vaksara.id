@@ -4,11 +4,13 @@ import { Alert, Badge, Button, Card, Checkbox, Field, Input, PageHeader, Select,
 import { LiveAuthForm } from "@/components/LiveAuth";
 import { ReviewerDocuments, VendorDocumentsCard } from "@/components/VerificationDocs";
 import PublicDirectory from "@/pages/PublicDirectory";
+import { DataRequestsAdmin } from "@/pages/Privacy";
 import { useLive, type Listing, type ListingInput } from "@/LiveContext";
 import { useApp } from "@/store";
 import { useCooperation } from "@/CooperationContext";
 import { formatIDR, openRequestCategories } from "@/data";
 import { instagramUrl, waNumber } from "@/data-public-vendors";
+import { ceremonies, ceremonyLabel } from "@/utils/ceremonies";
 import { friendly, q, rest } from "@/utils/supabase";
 
 export const listingCategories = [...openRequestCategories, "Sanggar seni & tari", "Rumah pengantin / WO", "Lainnya"];
@@ -37,13 +39,13 @@ export function LiveVendorProfile() {
   const { profile, listing, saveListing, saveProfile, ready, error: loadError } = useLive();
   const { toast } = useApp();
   const { reload } = useCooperation();
-  const empty: ListingInput = { name: "", category: listingCategories[0], area: profile?.city ?? "Makassar", description: "", price_from: null, whatsapp: profile?.phone ?? "", instagram: "", tiktok: "", facebook: "", published: true };
+  const empty: ListingInput = { name: "", category: listingCategories[0], area: profile?.city ?? "Makassar", description: "", price_from: null, whatsapp: profile?.phone ?? "", instagram: "", tiktok: "", facebook: "", published: true, ceremonies: [] };
   const [f, setF] = useState<ListingInput>(empty);
   const [price, setPrice] = useState("");
   const [me, setMe] = useState({ full_name: "", phone: "", city: "" });
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   useEffect(() => {
-    if (listing) { setF({ name: listing.name, category: listing.category, area: listing.area, description: listing.description, price_from: listing.price_from, whatsapp: listing.whatsapp, instagram: listing.instagram, tiktok: listing.tiktok, facebook: listing.facebook, published: listing.published }); setPrice(listing.price_from ? String(listing.price_from) : ""); }
+    if (listing) { setF({ name: listing.name, category: listing.category, area: listing.area, description: listing.description, price_from: listing.price_from, whatsapp: listing.whatsapp, instagram: listing.instagram, tiktok: listing.tiktok, facebook: listing.facebook, published: listing.published, ceremonies: listing.ceremonies ?? [] }); setPrice(listing.price_from ? String(listing.price_from) : ""); }
     else if (profile) setF(prev => ({ ...prev, area: prev.area || profile.city, whatsapp: prev.whatsapp || profile.phone }));
     if (profile) setMe({ full_name: profile.full_name, phone: profile.phone, city: profile.city });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -72,6 +74,11 @@ export function LiveVendorProfile() {
           <Field label="Kategori utama"><Select aria-label="Kategori layanan" value={f.category} onChange={e => set({ category: e.target.value })}>{listingCategories.map(c => <option key={c}>{c}</option>)}</Select></Field>
           <Field label="Wilayah layanan"><Input aria-label="Wilayah layanan" maxLength={120} value={f.area} onChange={e => set({ area: e.target.value })} placeholder="Makassar, Gowa, Maros" /></Field>
           <Field label="Deskripsi layanan" className="sm:col-span-2" hint="Prosesi yang dikuasai, pengalaman, isi paket, tradisi Bugis/Makassar yang dilayani."><Textarea aria-label="Deskripsi layanan" maxLength={2000} rows={5} value={f.description} onChange={e => set({ description: e.target.value })} /></Field>
+          <fieldset className="sm:col-span-2" aria-label="Prosesi yang dilayani">
+            <legend className="text-[14px] font-semibold text-ink">Prosesi adat yang Anda layani</legend>
+            <p className="text-[13px] text-muted">Membantu keluarga menemukan Anda sesuai tahapan acaranya. Istilah Bugis dan Makassar dicantumkan berdampingan.</p>
+            <div className="mt-2 grid gap-1.5 sm:grid-cols-2">{ceremonies.map(c => { const on = (f.ceremonies ?? []).includes(c.id); return <label key={c.id} className={`flex cursor-pointer items-start gap-2 rounded-xl px-3 py-2 text-[13px] ring-1 ${on ? "bg-sand-light ring-sand" : "bg-white ring-line"}`}><input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#123a33]" checked={on} onChange={() => set({ ceremonies: on ? (f.ceremonies ?? []).filter(x => x !== c.id) : [...(f.ceremonies ?? []), c.id] })} aria-label={c.label} /><span><b className="text-ink">{c.label}</b>{c.terms && <span className="block text-muted">{c.terms}</span>}</span></label>; })}</div>
+          </fieldset>
           <Field label="Harga mulai (Rp, opsional)"><Input aria-label="Harga mulai" inputMode="numeric" value={price} onChange={e => setPrice(e.target.value.replace(/[^\d.]/g, ""))} placeholder="3000000" /></Field>
           <Field label="WhatsApp usaha"><Input aria-label="WhatsApp usaha" type="tel" value={f.whatsapp} onChange={e => set({ whatsapp: e.target.value })} /></Field>
           <Field label="Instagram (opsional)"><Input aria-label="Instagram usaha" value={f.instagram} onChange={e => set({ instagram: e.target.value })} placeholder="@namausaha" /></Field>
@@ -98,12 +105,13 @@ export function LiveVendorProfile() {
 }
 
 /** Kartu profil pelaku yang terdaftar dan sudah ditinjau (akun nyata). */
-export function LiveListingCard({ l, onRequest }: { l: Pick<Listing, "id" | "name" | "category" | "area" | "description" | "price_from" | "whatsapp" | "instagram">; onRequest?: () => void }) {
+export function LiveListingCard({ l, onRequest }: { l: Pick<Listing, "id" | "name" | "category" | "area" | "description" | "price_from" | "whatsapp" | "instagram" | "ceremonies">; onRequest?: () => void }) {
   return <Card className="flex flex-col p-4">
     <div className="flex flex-wrap items-center gap-1.5"><Badge tone="green" dot>Terdaftar di VAKSARA</Badge><Badge tone="sand">{l.category}</Badge></div>
     <h3 className="mt-2 font-display text-xl text-ink">{l.name}</h3>
     <p className="text-[13px] text-muted">{l.area}{l.price_from ? ` · mulai ${formatIDR(l.price_from)}` : ""}</p>
     <p className="mt-2 line-clamp-4 flex-1 text-sm text-ink-soft">{l.description}</p>
+    {(l.ceremonies?.length ?? 0) > 0 && <div className="mt-2 flex flex-wrap gap-1" aria-label="Prosesi yang dilayani">{l.ceremonies!.map(c => <span key={c} className="rounded-full bg-cream px-2 py-0.5 text-[12px] font-semibold text-ink-soft ring-1 ring-line">{ceremonyLabel(c)}</span>)}</div>}
     <div className="mt-3 flex flex-wrap gap-2">
       {onRequest && <Button size="sm" onClick={onRequest}>Kirim permintaan</Button>}
       {l.whatsapp && <a className="inline-flex min-h-9 items-center gap-1 rounded-full bg-white px-3 text-[13px] font-semibold text-ink ring-1 ring-line" href={`https://wa.me/${waNumber(l.whatsapp)}`} target="_blank" rel="noreferrer"><MessageCircle className="h-3.5 w-3.5" />WhatsApp</a>}
@@ -116,8 +124,19 @@ export function LiveListingCard({ l, onRequest }: { l: Pick<Listing, "id" | "nam
 export function useLiveListings() {
   const [items, setItems] = useState<Listing[]>([]);
   const [loaded, setLoaded] = useState(false);
-  useEffect(() => { let on = true; rest<Listing[]>("vendor_directory?select=id,name,category,area,description,price_from,whatsapp,instagram,tiktok,facebook&order=updated_at.desc", { anon: true }).then(r => { if (on) setItems(r); }).catch(() => undefined).finally(() => { if (on) setLoaded(true); }); return () => { on = false; }; }, []);
+  useEffect(() => { let on = true; rest<Listing[]>("vendor_directory?select=id,name,category,area,description,price_from,whatsapp,instagram,tiktok,facebook,ceremonies&order=updated_at.desc", { anon: true }).then(r => { if (on) setItems(r); }).catch(() => undefined).finally(() => { if (on) setLoaded(true); }); return () => { on = false; }; }, []);
   return { items, loaded };
+}
+
+type ReviewEntry = { id: number; reviewer_name: string; decision: string; note: string; created_at: string };
+/** Jejak peninjauan: dicatat otomatis oleh database (siapa, kapan, keputusan apa). */
+function ReviewHistory({ listingId, version }: { listingId: string; version: number }) {
+  const [rows, setRows] = useState<ReviewEntry[] | null>(null);
+  useEffect(() => { let on = true; rest<ReviewEntry[]>(`listing_reviews?select=id,reviewer_name,decision,note,created_at&listing_id=eq.${q(listingId)}&order=created_at.desc&limit=6`).then(r => { if (on) setRows(r); }).catch(() => { if (on) setRows([]); }); return () => { on = false; }; }, [listingId, version]);
+  if (!rows || rows.length === 0) return null;
+  return <details className="mt-2 text-[13px]"><summary className="cursor-pointer font-semibold text-ink-soft">Riwayat peninjauan ({rows.length})</summary>
+    <ol className="mt-1 space-y-0.5 text-muted">{rows.map(r => <li key={r.id}>{new Date(r.created_at).toLocaleString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })} · <b className="text-ink-soft">{r.decision}</b> oleh {r.reviewer_name || "Sistem"}{r.note ? ` · “${r.note}”` : ""}</li>)}</ol>
+  </details>;
 }
 
 /** Peninjauan profil pelaku budaya oleh admin (akun dengan is_admin). */
@@ -148,6 +167,7 @@ export function LiveScreening() {
         <p className="text-[13px] text-muted">{l.area} · WA {l.whatsapp}{l.instagram ? ` · IG @${l.instagram}` : ""} · {l.published ? "ingin tampil" : "disembunyikan pemilik"}</p>
         <p className="mt-2 text-sm text-ink-soft">{l.description}</p>
         <div className="mt-2 flex flex-wrap gap-2">{l.whatsapp && <a className="inline-flex items-center gap-1 text-[13px] font-semibold text-ink underline" href={`https://wa.me/${waNumber(l.whatsapp)}`} target="_blank" rel="noreferrer">Hubungi via WhatsApp <ExternalLink className="h-3 w-3" /></a>}</div>
+        <ReviewHistory listingId={l.id} version={rows.length + (l.updated_at ? Date.parse(l.updated_at) : 0)} />
         <ReviewerDocuments userId={l.id} />
         <div className="mt-3 grid gap-1 sm:grid-cols-3">
           <Checkbox checked={k.identity} onChange={v => setChecks({ ...checks, [l.id]: { ...k, identity: v } })} label="Identitas diperiksa" />
@@ -158,6 +178,7 @@ export function LiveScreening() {
         <div className="mt-3 flex flex-wrap gap-2"><Button size="sm" onClick={() => decide(l, "approved")}>Setujui & tampilkan</Button><Button size="sm" variant="secondary" onClick={() => decide(l, "rejected")}>Minta perbaikan</Button></div>
       </Card>;
     })}</div>
+    <DataRequestsAdmin />
   </>;
 }
 
@@ -169,13 +190,15 @@ export function LiveVendorSearch() {
   const [q, setQ] = useState(params.get("q") ?? params.get("kategori") ?? "");
   const { items, loaded } = useLiveListings();
   const needle = q.trim().toLowerCase();
-  const registered = items.filter(l => !needle || `${l.name} ${l.category} ${l.area} ${l.description}`.toLowerCase().includes(needle));
+  const [rite, setRite] = useState("");
+  const registered = items.filter(l => (!rite || (l.ceremonies ?? []).includes(rite)) && (!needle || `${l.name} ${l.category} ${l.area} ${l.description} ${(l.ceremonies ?? []).map(ceremonyLabel).join(" ")}`.toLowerCase().includes(needle)));
   const canRequest = !live || profile?.role === "couple";
   return <>
     <PageHeader title="Cari pelaku budaya" description="Pelaku yang terdaftar dan lolos peninjauan dapat langsung dikirimi permintaan. Usaha di direktori Makassar dapat dihubungi lewat WhatsApp atau media sosial mereka." />
     <label className="relative mb-4 block"><span className="sr-only">Cari pelaku terdaftar</span><Input aria-label="Cari pelaku terdaftar" value={q} onChange={e => setQ(e.target.value)} placeholder="Cari nama, layanan, atau wilayah, mis. mappacci, katering, Gowa" /></label>
     <section aria-label="Pelaku terdaftar" className="mb-8">
       <div className="flex flex-wrap items-end justify-between gap-2"><div><h2 className="font-display text-2xl text-ink">Terdaftar di VAKSARA</h2><p className="mt-1 text-sm text-muted">Identitas, konteks budaya, dan persetujuan publikasi sudah ditinjau.</p></div><Button size="sm" variant="secondary" onClick={() => navigate("planner/permintaan-terbuka")}>Pasang permintaan terbuka</Button></div>
+      <div className="-mx-1 mt-3 flex gap-1.5 overflow-x-auto px-1 pb-1" aria-label="Saring menurut prosesi">{[{ id: "", label: "Semua prosesi" }, ...ceremonies].map(c => <button key={c.id || "semua"} type="button" onClick={() => setRite(c.id)} aria-pressed={rite === c.id} className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] font-semibold ${rite === c.id ? "bg-ink text-cream" : "bg-white text-ink-soft ring-1 ring-line"}`}>{c.label}</button>)}</div>
       {!loaded && <Card className="mt-3 p-5 text-sm text-muted">Memuat…</Card>}
       {loaded && registered.length === 0 && <Card className="mt-3 p-5"><p className="text-sm text-ink-soft">{items.length === 0 ? "Belum ada pelaku budaya yang lolos peninjauan. Pasang permintaan terbuka agar pelaku yang mendaftar dapat menawarkan layanan kepada Anda." : "Tidak ada pelaku terdaftar yang cocok dengan pencarian ini."}</p></Card>}
       <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{registered.map(l => <LiveListingCard key={l.id} l={l} onRequest={canRequest ? () => navigate("planner/alur?vendor=" + encodeURIComponent(l.name)) : undefined} />)}</div>

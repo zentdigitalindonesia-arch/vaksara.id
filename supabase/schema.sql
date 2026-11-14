@@ -88,6 +88,11 @@ create table if not exists public.vendor_listings (
   updated_at timestamptz not null default now()
 );
 create unique index if not exists vendor_listings_name_key on public.vendor_listings (lower(name));
+-- Prosesi adat yang dilayani (mis. mappacci/akkorontigi, akad), dipakai untuk mencocokkan kebutuhan acara keluarga.
+alter table public.vendor_listings add column if not exists ceremonies text[] not null default '{}';
+do $$ begin
+  alter table public.vendor_listings add constraint vendor_listings_ceremonies_len check (cardinality(ceremonies) <= 12);
+exception when duplicate_object then null; end $$;
 
 -- Hasil peninjauan hanya dapat diubah admin. Perubahan profil oleh pelaku mengembalikan status ke "pending"
 -- bila sebelumnya ditolak, atau bila profil yang sudah disetujui mengubah isi yang diperiksa peninjau
@@ -109,7 +114,8 @@ begin
         new.name is distinct from old.name or new.category is distinct from old.category or
         new.area is distinct from old.area or new.description is distinct from old.description or
         new.whatsapp is distinct from old.whatsapp or new.instagram is distinct from old.instagram or
-        new.tiktok is distinct from old.tiktok or new.facebook is distinct from old.facebook) then
+        new.tiktok is distinct from old.tiktok or new.facebook is distinct from old.facebook or
+        new.ceremonies is distinct from old.ceremonies) then
         new.review_status := 'pending';
         -- Hasil pemeriksaan lama dipertahankan agar kerja sama yang sedang berjalan tidak terhenti;
         -- profil tersembunyi dari direktori dan permintaan baru sampai peninjau menyetujui ulang.
@@ -156,7 +162,7 @@ grant execute on function public.is_listed(uuid) to anon, authenticated;
 
 -- Direktori publik: hanya profil yang disetujui dan ditampilkan, tanpa catatan dan hasil pemeriksaan internal.
 create or replace view public.vendor_directory as
-  select id, name, category, area, description, price_from, whatsapp, instagram, tiktok, facebook, created_at, updated_at
+  select id, name, category, area, description, price_from, whatsapp, instagram, tiktok, facebook, created_at, updated_at, ceremonies
   from public.vendor_listings where published and review_status = 'approved';
 revoke all on public.vendor_directory from anon, authenticated;
 grant select on public.vendor_directory to anon, authenticated;
@@ -530,6 +536,87 @@ create policy verifikasi_select on storage.objects for select to authenticated
 drop policy if exists verifikasi_delete on storage.objects;
 create policy verifikasi_delete on storage.objects for delete to authenticated
   using (bucket_id = 'verifikasi' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ============ JEJAK PENINJAUAN (siapa, kapan, keputusan apa) ============
+-- Dicatat otomatis oleh pemicu setiap kali status atau hasil pemeriksaan profil berubah; tidak dapat ditulis dari browser.
+create table if not exists public.listing_reviews (
+  id bigint generated always as identity primary key,
+  listing_id uuid not null references public.vendor_listings(id) on delete cascade,
+  reviewer_id uuid references public.profiles(id) on delete set null,
+  reviewer_name text not null default '',
+  decision text not null,
+  identity_ok boolean not null default false,
+  culture_ok boolean not null default false,
+  consent_ok boolean not null default false,
+  note text not null default '',
+  created_at timestamptz not null default now()
+);
+create index if not exists listing_reviews_listing on public.listing_reviews (listing_id, created_at desc);
+alter table public.listing_reviews enable row level security;
+drop policy if exists reviews_select on public.listing_reviews;
+create policy reviews_select on public.listing_reviews for select to authenticated using (public.is_admin());
+revoke all on public.listing_reviews from anon, authenticated;
+grant select on public.listing_reviews to authenticated;
+
+create or replace function public.log_listing_review() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if tg_op = 'INSERT' or new.review_status is distinct from old.review_status or new.identity_ok is distinct from old.identity_ok
+     or new.culture_ok is distinct from old.culture_ok or new.consent_ok is distinct from old.consent_ok or new.review_note is distinct from old.review_note then
+    insert into public.listing_reviews (listing_id, reviewer_id, reviewer_name, decision, identity_ok, culture_ok, consent_ok, note)
+    values (new.id, auth.uid(), coalesce((select full_name from public.profiles where id = auth.uid()), 'Sistem'),
+      case when tg_op = 'INSERT' then 'diajukan'
+           when new.review_status = 'approved' then 'disetujui'
+           when new.review_status = 'rejected' then 'perlu perbaikan'
+           when old.review_status = 'approved' then 'ditinjau ulang (profil diubah)'
+           else 'diajukan ulang' end,
+      new.identity_ok, new.culture_ok, new.consent_ok, new.review_note);
+  end if;
+  return null;
+end $$;
+drop trigger if exists log_listing_review on public.vendor_listings;
+create trigger log_listing_review after insert or update on public.vendor_listings
+  for each row execute function public.log_listing_review();
+
+-- ============ PERMINTAAN DATA PRIBADI (UU 27/2022) ============
+-- Pemilik usaha di direktori publik dan pemilik akun dapat meminta koreksi, penghapusan, atau salinan data.
+create table if not exists public.data_requests (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid default auth.uid() references public.profiles(id) on delete set null,
+  kind text not null check (kind in ('directory_remove', 'directory_fix', 'account_delete', 'data_access', 'consent_withdraw', 'other')),
+  subject text not null check (length(subject) between 2 and 200),
+  contact text not null check (length(contact) between 5 and 200),
+  message text not null default '' check (length(message) <= 2000),
+  status text not null default 'open' check (status in ('open', 'done', 'rejected')),
+  handled_note text not null default '' check (length(handled_note) <= 1000),
+  created_at timestamptz not null default now(),
+  handled_at timestamptz
+);
+alter table public.data_requests enable row level security;
+drop policy if exists dreq_insert on public.data_requests;
+create policy dreq_insert on public.data_requests for insert to anon, authenticated
+  with check (status = 'open' and handled_note = '' and handled_at is null and (user_id is null or user_id = auth.uid()));
+drop policy if exists dreq_select on public.data_requests;
+create policy dreq_select on public.data_requests for select to authenticated using (user_id = auth.uid() or public.is_admin());
+drop policy if exists dreq_update on public.data_requests;
+create policy dreq_update on public.data_requests for update to authenticated using (public.is_admin()) with check (public.is_admin());
+revoke all on public.data_requests from anon, authenticated;
+grant insert on public.data_requests to anon, authenticated;
+grant select on public.data_requests to authenticated;
+grant update (status, handled_note, handled_at) on public.data_requests to authenticated;
+
+create or replace function public.notify_data_request() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.notify_admins('data_request',
+    'Permintaan data pribadi: ' || case new.kind when 'directory_remove' then 'hapus dari direktori' when 'directory_fix' then 'koreksi direktori'
+      when 'account_delete' then 'hapus akun' when 'data_access' then 'salinan data' when 'consent_withdraw' then 'tarik persetujuan' else 'lainnya' end,
+    left(new.subject || ' · kontak ' || new.contact, 500), 'admin/screening');
+  return null;
+end $$;
+drop trigger if exists notify_data_request on public.data_requests;
+create trigger notify_data_request after insert on public.data_requests
+  for each row execute function public.notify_data_request();
 
 -- ============ HAK AKSES API ============
 grant usage on schema public to anon, authenticated;

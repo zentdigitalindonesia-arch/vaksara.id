@@ -2,6 +2,7 @@ import { EventPlanProvider, useEventPlan } from "@/EventPlanContext";
 import EventStart, { EventHome, EventTools } from "@/pages/EventStart";
 import { CoupleOpenRequests, VendorOpportunities } from "@/pages/OpenRequests";
 import PublicDirectory from "@/pages/PublicDirectory";
+import PrivacyPage from "@/pages/Privacy";
 import OwnerConsole, { isOwnerPath } from "@/pages/OwnerConsole";
 import Registration from "@/pages/Registration";
 import CooperationOperations from "@/pages/CooperationOperations";
@@ -69,6 +70,7 @@ function Router() {
       layanan: "Layanan Pernikahan — VAKSARA",
       pengetahuan: "Pengetahuan Budaya — VAKSARA",
       tentang: "Tentang VAKSARA",
+      privasi: "Kebijakan Privasi — VAKSARA",
       harga: "Paket & Biaya — VAKSARA",
       trust: "VAKSARA Trust — Perjanjian & Kepercayaan",
       planner: "Rencana Acara — VAKSARA",
@@ -106,6 +108,7 @@ function Router() {
   else if (segments[0] === "praktisi" && segments[1]) content = practitioners.some((p) => p.id === segments[1]) ? <PractitionerPage key={segments[1]} id={segments[1]} /> : <NotFound />;
   else if (path === "pengetahuan") content = <Knowledge />;
   else if (path === "tentang") content = <AboutPage />;
+  else if (path === "privasi") content = <PrivacyPage />;
   else if (path === "harga") content = <PricingPage />;
   else if (path === "demo") content = <GuidedDemo />;
   else if (path === "direktori-makassar") content = <PublicDirectory />;

@@ -6,6 +6,7 @@ import { useCooperation } from "@/CooperationContext";
 import { useEventPlan } from "@/EventPlanContext";
 import { formatIDR, openRequestCategories, practitioners, type OpenRequest } from "@/data";
 import { caseRoute } from "@/utils/workspace";
+import { callFunction, friendly, FunctionMissingError } from "@/utils/supabase";
 import { longDate } from "@/components/EventCalendar";
 
 /** Penjelasan singkat dua arah: keluarga mencari pelaku, atau pelaku menanggapi permintaan keluarga. */
@@ -22,7 +23,7 @@ function RequestFacts({ r }: { r: OpenRequest }) {
 
 export function CoupleOpenRequests() {
   const { openRequests, addOpenRequest, chooseOpenRequest, navigate, toast } = useApp();
-  const { flow, dispatch, live, loading } = useCooperation();
+  const { flow, dispatch, live, loading, reload } = useCooperation();
   const { plan } = useEventPlan();
   const mine = openRequests.filter(r => r.mine);
   const [open, setOpen] = useState(mine.length === 0);
@@ -35,10 +36,21 @@ export function CoupleOpenRequests() {
     setForm({ ...form, title: "", detail: "", budget: "" }); setError(""); setOpen(false);
     toast("Permintaan terbuka dipasang. Pelaku budaya yang cocok dapat mengajukan minat.", "success", "Terpasang");
   };
-  const choose = (r: OpenRequest, vendor: string) => {
+  const choose = async (r: OpenRequest, vendor: string) => {
     const id = `or-case-${Date.now().toString(36)}`;
     const request = `${r.title}. ${r.detail} (dari permintaan terbuka)`;
     if (live && loading) { toast("Data masih dimuat dari server. Tunggu sebentar lalu pilih lagi.", "info"); return; }
+    // Akun nyata: kerja sama dibuat, permintaan dikirim, dan permintaan terbuka ditutup dalam satu langkah server.
+    if (live) {
+      try {
+        const res = await callFunction<{ row: { id: string } }>("cooperation-action", { requestId: r.id, vendorName: vendor, action: { type: "choose_open", id: crypto.randomUUID(), data: { date: r.date, request } } });
+        chooseOpenRequest(r.id, vendor, res.row.id, true);
+        await reload();
+        toast(`${vendor} dipilih. Permintaan resmi terkirim; lanjutkan di Kerja sama.`, "success", "Pelaku dipilih");
+        navigate(caseRoute("couple", "requests", res.row.id));
+        return;
+      } catch (e) { if (!(e instanceof FunctionMissingError)) { toast(friendly(e), "error", "Belum dapat dipilih"); return; } }
+    }
     if (!dispatch({ type: "lead", actor: "couple", id, data: { vendor, date: r.date, request } })) { if (live) toast("Pelaku belum dapat dipilih. Muat ulang halaman lalu coba lagi.", "error"); return; }
     if (!dispatch({ type: "submit", actor: "couple", caseId: id, data: {} })) return;
     chooseOpenRequest(r.id, vendor, id);

@@ -12,7 +12,7 @@ const withCatalog = (flow: Flow): Flow => ({ ...flow, catalog });
 const examples = () => withCatalog(demoCooperations(practitioners[0].name));
 const load = () => { try { const data = localStorage.getItem(KEY); if (data === null) return examples(); const parsed: unknown = JSON.parse(data); return validFlow(parsed) ? withCatalog(parsed) : withCatalog(initialFlow()); } catch { return withCatalog(initialFlow()); } };
 type Model = { flow: Flow; error: string };
-type API = Model & { live: boolean; loading: boolean; storageError: boolean; dispatch: (action: Omit<FlowAction, "id" | "time"> & { id?: string }) => Flow | null; reset: () => void; loadExamples: () => void; reload: () => void };
+type API = Model & { live: boolean; loading: boolean; storageError: boolean; dispatch: (action: Omit<FlowAction, "id" | "time"> & { id?: string }) => Flow | null; reset: () => void; loadExamples: () => void; reload: () => Promise<void> };
 const Context = createContext<API | null>(null);
 
 type Row = { id: string; couple_id: string; vendor_id: string; couple_name: string; vendor_name: string; data: Cooperation; updated_at: string };
@@ -157,6 +157,6 @@ export function CooperationProvider({ children }: { children: ReactNode }) {
     const current = latest.current.flow, seed = demoCooperations(current.accounts.vendor?.name ?? practitioners[0].name);
     commit({ flow: { ...current, catalog, accounts: { couple: current.accounts.couple ?? seed.accounts.couple, vendor: current.accounts.vendor ?? seed.accounts.vendor }, vendorReview: current.accounts.vendor ? current.vendorReview : seed.vendorReview, cases: [...current.cases, ...seed.cases.filter(c => !current.cases.some(old => old.id === c.id))] }, error: "" });
   };
-  return <Context.Provider value={{ ...model, live, loading, storageError, dispatch, loadExamples, reload: () => { if (live) loadRemote(); }, reset: () => { if (!live) commit({ flow: withCatalog(initialFlow()), error: "" }); } }}>{children}</Context.Provider>;
+  return <Context.Provider value={{ ...model, live, loading, storageError, dispatch, loadExamples, reload: () => (live ? loadRemote() : Promise.resolve()), reset: () => { if (!live) commit({ flow: withCatalog(initialFlow()), error: "" }); } }}>{children}</Context.Provider>;
 }
 export function useCooperation() { const value = useContext(Context); if (!value) throw new Error("CooperationProvider missing"); return value; }

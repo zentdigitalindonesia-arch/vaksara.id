@@ -58,7 +58,7 @@ type Store = {
   openRequests: OpenRequest[];
   addOpenRequest: (r: Omit<OpenRequest, "id" | "createdAt" | "status" | "responses" | "mine" | "family"> & { family: string }) => void;
   respondOpenRequest: (id: string, r: Omit<OpenRequestResponse, "id" | "at">) => void;
-  chooseOpenRequest: (id: string, vendor: string, caseId: string) => void;
+  chooseOpenRequest: (id: string, vendor: string, caseId: string, serverDone?: boolean) => void;
   payments: PaymentRecord[];
   addPayment: (p: PaymentRecord) => void;
   disputes: Dispute[];
@@ -253,10 +253,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setLiveRequests(apply);
     liveWrite(rest("open_request_responses?on_conflict=request_id,vendor_id", { method: "POST", body: { id: response.id, request_id: id, vendor_name: r.vendor, note: r.note, price: r.price }, prefer: "resolution=merge-duplicates,return=minimal" }), "Minat Anda terkirim ke keluarga.");
   }, [live, setLocalRequests, liveWrite]);
-  const chooseOpenRequest = useCallback((id: string, vendor: string, caseId: string) => {
+  const chooseOpenRequest = useCallback((id: string, vendor: string, caseId: string, serverDone = false) => {
     const apply = (prev: OpenRequest[]) => prev.map((o) => (o.id === id ? { ...o, status: "closed" as const, chosen: vendor, caseId } : o));
     if (!live) { setLocalRequests(apply); return; }
     setLiveRequests(apply);
+    if (serverDone) { loadRequests(); return; }
     liveWrite(rest(`open_requests?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", body: { status: "closed", chosen: vendor, case_id: caseId }, prefer: "return=minimal" }), "Permintaan ditutup; kerja sama dengan pelaku terpilih dibuat.");
   }, [live, setLocalRequests, liveWrite]);
   const addPayment = useCallback((p: PaymentRecord) => setPayments((prev) => [p, ...prev]), []);

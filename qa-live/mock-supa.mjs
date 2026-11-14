@@ -30,7 +30,7 @@ function runAs(uid, query) {
   // baris pertama = hasil set_config (f/t), sisanya = JSON (json_agg dapat memuat baris baru)
   return JSON.parse(out.slice(1).join("\n") || "null");
 }
-const PK = { profiles: ["id"], vendor_listings: ["id"], user_state: ["user_id", "key"], cooperations: ["id"], open_requests: ["id"], open_request_responses: ["id"], notifications: ["id"] };
+const PK = { data_requests: ["id"], profiles: ["id"], vendor_listings: ["id"], user_state: ["user_id", "key"], cooperations: ["id"], open_requests: ["id"], open_request_responses: ["id"], notifications: ["id"] };
 const EMBED = { open_request_responses: { parent: "open_requests", fk: "request_id" } };
 
 function parseSelect(sel, table) {
@@ -68,14 +68,17 @@ function handleRest(req, url, body, uid) {
   if (req.method === "POST") {
     const rows = Array.isArray(body) ? body : [body]; const keys = Object.keys(rows[0]).map(ident);
     const conflict = params.get("on_conflict") ? params.get("on_conflict").split(",").map(ident) : PK[table];
-    const upsert = prefer.includes("merge-duplicates") ? ` on conflict (${conflict.join(",")}) do update set ${keys.map(k => `${k} = excluded.${k}`).join(", ")}` : "";
-    const out = runAs(uid, `with r as (insert into public.${table} (${keys.join(",")}) select ${keys.join(",")} from json_populate_recordset(null::public.${table}, ${jlit(rows)})${upsert} returning *) select coalesce(json_agg(r), '[]'::json) from r`);
-    return ret ? out : null;
+    const upsert = prefer.includes("merge-duplicates") ? ` on conflict (${conflict.join(",")}) do update set ${keys.map(k => `${k} = excluded.${k}`).join(", ")}` : prefer.includes("ignore-duplicates") ? ` on conflict (${conflict.join(",")}) do nothing` : "";
+    const ins = `insert into public.${table} (${keys.join(",")}) select ${keys.join(",")} from json_populate_recordset(null::public.${table}, ${jlit(rows)})${upsert}`;
+    // return=minimal: tanpa RETURNING, seperti PostgREST (tidak butuh hak SELECT).
+    if (!ret) { runAs(uid, `${ins}; select '[]'::json`); return null; }
+    return runAs(uid, `with r as (${ins} returning *) select coalesce(json_agg(r), '[]'::json) from r`);
   }
   if (req.method === "PATCH") {
     const keys = Object.keys(body).map(ident);
     return runAs(uid, `with r as (update public.${table} t set ${keys.map(k => `${k} = (json_populate_record(null::public.${table}, ${jlit(body)})).${k}`).join(", ")}${where(params)} returning t.*) select coalesce(json_agg(r), '[]'::json) from r`);
   }
+  if (req.method === "DELETE") return runAs(uid, `with r as (delete from public.${table} t${where(params)} returning t.*) select coalesce(json_agg(r), '[]'::json) from r`);
   throw new Error("method");
 }
 

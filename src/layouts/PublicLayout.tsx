@@ -170,6 +170,7 @@ export function Footer({ onAuth }: { onAuth?: (m: "masuk" | "daftar") => void })
               ["Paket & biaya", "harga"],
               ["Pusat Bantuan", "pusat-bantuan"],
               ["VAKSARA Trust", "trust"],
+              ["Kebijakan privasi", "privasi"],
             ]}
             onClick={navigate}
           />

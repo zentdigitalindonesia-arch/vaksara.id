@@ -6,7 +6,7 @@ import { Logo, LogoMark } from "@/components/brand";
 import { Avatar, Badge, Button } from "@/components/ui";
 import { roleForRoute, useApp, type Role } from "@/store";
 import { demoLogout, demoSession } from "@/utils/demo-login";
-import { useLive } from "@/LiveContext";
+import { reloadFromServer, useLive } from "@/LiveContext";
 import { notificationTime, useServerNotifications } from "@/useServerNotifications";
 import { q, rest } from "@/utils/supabase";
 import { cn } from "@/utils/cn";
@@ -272,7 +272,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <Avatar name={meta.name} size="sm" className="border-white/20 bg-sand/20 text-sand" />
           <div className="min-w-0 flex-1">
             <div className="truncate text-[14px] font-bold text-cream">{meta.name}</div>
-            <div className="truncate text-[12px] text-cream/45">{live ? (syncStatus === "error" ? "Gagal menyimpan, mencoba lagi…" : syncStatus === "saving" ? "Menyimpan…" : "Akun VAKSARA · tersimpan") : role === "vendor" ? "Akun vendor demo" : role === "admin" ? "Trust Officer" : "Akun pengantin"}</div>
+            <div className="truncate text-[12px] text-cream/45">{live ? (syncStatus === "conflict" ? "Diubah di perangkat lain" : syncStatus === "error" ? "Gagal menyimpan, mencoba lagi…" : syncStatus === "saving" ? "Menyimpan…" : "Akun VAKSARA · tersimpan") : role === "vendor" ? "Akun vendor demo" : role === "admin" ? "Trust Officer" : "Akun pengantin"}</div>
           </div>
           <button onClick={signOut} className="rounded-md p-1 text-cream/40 hover:bg-white/10 hover:text-cream" aria-label="Keluar">
             <LogOut className="h-3.5 w-3.5" />
@@ -448,9 +448,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ink text-[12px] font-bold text-cream">{meta.name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase() || "VA"}</span>
                 <span>{contextCase ? "Kerja sama: " : live ? "Akun: " : "Profil demo: "}<strong className="font-semibold text-ink">{contextCase?.vendor ?? meta.name}</strong>{contextCase ? " · " + contextCase.eventDate : ""}</span>
               </div>
-              <Badge tone={live && syncStatus === "error" ? "red" : "green"} dot>{live ? (syncStatus === "saving" ? "Menyimpan…" : syncStatus === "error" ? "Belum tersimpan" : "Tersimpan di server") : "Mode data prototipe"}</Badge>
+              <Badge tone={live && (syncStatus === "error" || syncStatus === "conflict") ? "red" : "green"} dot>{live ? (syncStatus === "conflict" ? "Diubah di perangkat lain" : syncStatus === "saving" ? "Menyimpan…" : syncStatus === "error" ? "Belum tersimpan" : "Tersimpan di server") : "Mode data prototipe"}</Badge>
             </div>
           )}
+          {live && syncStatus === "conflict" && <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#F0D5D0] bg-[#F9ECE9] p-4 text-[14px] text-[#933A2F]"><span><b>Rencana ini baru saja diubah dari perangkat lain.</b> Perubahan terakhir di perangkat ini tidak disimpan agar tidak menimpa. Muat ulang untuk melihat versi terbaru, lalu ulangi perubahan Anda.</span><Button size="sm" onClick={() => reloadFromServer()}>Muat ulang</Button></div>}
           {children}
         </main>
         <footer className="mx-auto hidden max-w-[1280px] flex-col gap-2 border-t border-line/70 px-4 py-4 text-[13px] text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:flex">

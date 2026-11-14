@@ -87,5 +87,58 @@ const badTok = await act({ token: "tok-palsu" }, { caseId: id, action: { type: "
 check("token palsu ditolak", badTok.status === 401);
 const pre = await fetch(B + "/functions/v1/cooperation-action", { method: "OPTIONS" });
 check("CORS preflight dijawab", pre.status === 204);
+
+// --- Poin 11: memilih pelaku dari permintaan terbuka dalam satu langkah server ---
+await api("/rest/v1/open_requests", { method: "POST", token: C.token, body: { id: "req-uji-terbuka", title: "Pemandu adat untuk mappacci", category: "Prosesi adat", event_date: "2027-09-12", detail: "Dua malam di Gowa." } });
+await api("/rest/v1/open_request_responses", { method: "POST", token: V.token, body: { id: "resp-uji-1", request_id: "req-uji-terbuka", note: "Kami siap membantu mappacci.", price: 6500000 } });
+const vName = psql(`select vendor_name from open_request_responses where id='resp-uji-1'`);
+check("nama pelaku pada minat diisi server", vName === "Sanggar Uji", vName);
+const choose = (u, vendorName = vName) => act(u, { requestId: "req-uji-terbuka", vendorName, action: { type: "choose_open", id: crypto.randomUUID(), data: { date: "2027-09-12", request: "Pemandu adat mappacci (dari permintaan terbuka)" } } });
+check("akun lain tidak dapat memilih untuk permintaan orang lain", (await choose(C2)).status === 404);
+check("pelaku tanpa minat tidak dapat dipilih", (await choose(C, "Sanggar Dua")).status === 400);
+const chosen = await choose(C);
+check("keluarga memilih pelaku: kerja sama terkirim", chosen.status === 200 && chosen.data?.row?.phase === "inquiry", JSON.stringify(chosen.data));
+check("permintaan terbuka ditutup dan tercatat", psql(`select status || '|' || chosen || '|' || (case_id = '${chosen.data?.row?.id}') from open_requests where id='req-uji-terbuka'`) === "closed|Sanggar Uji|true");
+const again = await choose(C);
+check("memilih dua kali ditolak (tanpa kerja sama ganda)", again.status === 400 && Number(psql(`select count(*) from cooperations where data->>'request' like '%dari permintaan terbuka%'`)) === 1, JSON.stringify(again));
+
+// --- Poin 14: prosesi yang dilayani ---
+const cer = await api(`/rest/v1/vendor_listings?id=eq.${V.id}`, { method: "PATCH", token: V.token, body: { ceremonies: ["mappacci", "akad"] }, prefer: "return=representation" });
+check("mengubah prosesi memicu tinjau ulang", cer.data?.[0]?.review_status === "pending", JSON.stringify(cer.data));
+await api(`/rest/v1/vendor_listings?id=eq.${V.id}`, { method: "PATCH", token: A.token, body: { review_status: "approved", identity_ok: true, culture_ok: true, consent_ok: true } });
+const dir = await api(`/rest/v1/vendor_directory?select=name,ceremonies&name=eq.Sanggar%20Uji`);
+check("direktori publik menampilkan prosesi", JSON.stringify(dir.data?.[0]?.ceremonies) === '["mappacci","akad"]', JSON.stringify(dir.data));
+const tooMany = await api(`/rest/v1/vendor_listings?id=eq.${V.id}`, { method: "PATCH", token: V.token, body: { ceremonies: Array.from({ length: 13 }, (_, i) => "p" + i) } });
+check("lebih dari 12 prosesi ditolak", tooMany.status >= 400);
+
+// --- Poin 8: jejak peninjau ---
+const trail = psql(`select string_agg(decision || ':' || coalesce(reviewer_name,''), ',' order by created_at) from listing_reviews where listing_id='${V.id}'`);
+check("jejak peninjauan mencatat keputusan dan peninjau", trail.includes("disetujui:Admin Uji") && trail.includes("ditinjau ulang"), trail);
+check("pelaku tidak dapat membaca jejak peninjau", (await api(`/rest/v1/listing_reviews?select=*`, { token: V.token })).data?.length === 0);
+
+// --- Poin 15: permintaan data pribadi ---
+const anonReq = await api("/rest/v1/data_requests", { method: "POST", body: { kind: "directory_remove", subject: "Usaha Contoh Makassar", contact: "0812 0000 0000", message: "Saya pemiliknya." }, prefer: "return=minimal" });
+check("pengunjung tanpa akun dapat mengajukan penghapusan", anonReq.status === 201, JSON.stringify(anonReq));
+const anonRead = await api("/rest/v1/data_requests?select=*");
+check("pengunjung tidak dapat membaca permintaan", anonRead.status >= 400 || anonRead.data?.length === 0, JSON.stringify(anonRead));
+check("peninjau mendapat pemberitahuan permintaan data", Number(psql(`select count(*) from notifications where user_id='${A.id}' and link='admin/screening'`)) >= 1);
+const reqs = await api("/rest/v1/data_requests?select=*", { token: A.token });
+check("peninjau membaca permintaan", reqs.data?.length === 1);
+check("pelaku tidak dapat menandai selesai", ((await api(`/rest/v1/data_requests?id=eq.${reqs.data?.[0]?.id}`, { method: "PATCH", token: V.token, body: { status: "done" }, prefer: "return=representation" })).data ?? []).length === 0);
+const done = await api(`/rest/v1/data_requests?id=eq.${reqs.data?.[0]?.id}`, { method: "PATCH", token: A.token, body: { status: "done", handled_note: "Dihapus dari daftar.", handled_at: new Date().toISOString() }, prefer: "return=representation" });
+check("peninjau menandai selesai", done.data?.[0]?.status === "done", JSON.stringify(done.data));
+check("jenis tidak dikenal ditolak", (await api("/rest/v1/data_requests", { method: "POST", body: { kind: "spam", subject: "x y", contact: "0812 1", message: "" } })).status >= 400);
+
+// --- Poin 9: data rencana tidak saling menimpa antarperangkat ---
+const key = "vaksara-planner-guests-v1";
+const first = await api("/rest/v1/user_state?on_conflict=user_id,key", { method: "POST", token: C.token, body: { user_id: C.id, key, value: [{ n: "A" }], updated_at: "2026-11-14T01:00:00.000Z" }, prefer: "resolution=ignore-duplicates,return=representation" });
+const at = first.data?.[0]?.updated_at;
+check("kunci baru tersimpan", Boolean(at), JSON.stringify(first));
+const dupNew = await api("/rest/v1/user_state?on_conflict=user_id,key", { method: "POST", token: C.token, body: { user_id: C.id, key, value: [{ n: "B" }], updated_at: "2026-11-14T01:00:01.000Z" }, prefer: "resolution=ignore-duplicates,return=representation" });
+check("perangkat kedua tidak menimpa kunci baru", dupNew.data?.length === 0);
+const devA = await api(`/rest/v1/user_state?user_id=eq.${C.id}&key=eq.${key}&updated_at=eq.${encodeURIComponent(at)}`, { method: "PATCH", token: C.token, body: { value: [{ n: "A2" }], updated_at: "2026-11-14T01:00:02.000Z" }, prefer: "return=representation" });
+check("perangkat A menyimpan dengan versi terkini", devA.data?.length === 1);
+const devB = await api(`/rest/v1/user_state?user_id=eq.${C.id}&key=eq.${key}&updated_at=eq.${encodeURIComponent(at)}`, { method: "PATCH", token: C.token, body: { value: [{ n: "B2" }], updated_at: "2026-11-14T01:00:03.000Z" }, prefer: "return=representation" });
+check("perangkat B dengan versi lama tidak menimpa", devB.data?.length === 0 && psql(`select value->0->>'n' from user_state where user_id='${C.id}' and key='${key}'`) === "A2");
 console.log(`=== ${pass} lulus, ${fail} gagal ===`);
 process.exit(fail ? 1 : 0);

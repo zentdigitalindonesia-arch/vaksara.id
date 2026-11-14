@@ -83,7 +83,7 @@ export function LiveAuthForm({ initial = "masuk" }: { initial?: "masuk" | "dafta
       <Field label="Kata sandi" hint="Min. 8 karakter, huruf dan angka."><PasswordInput aria-label="Kata sandi daftar" autoComplete="new-password" value={f.password} onChange={e => set({ password: e.target.value })} /></Field>
       <Field label="Ulangi kata sandi" hint={f.password2 && f.password !== f.password2 ? "Kata sandi belum sama." : "Ketik ulang kata sandi yang sama."}><PasswordInput aria-label="Ulangi kata sandi daftar" autoComplete="new-password" value={f.password2} onChange={e => set({ password2: e.target.value })} /></Field>
     </div>
-    <label className="flex items-start gap-2 text-[13px] text-ink-soft"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#123a33]" checked={f.agree} onChange={e => set({ agree: e.target.checked })} /><span>Saya setuju data akun (nama, email, WhatsApp, kota) disimpan VAKSARA untuk menjalankan layanan. Nomor WhatsApp tidak ditampilkan ke publik tanpa izin.</span></label>
+    <label className="flex items-start gap-2 text-[13px] text-ink-soft"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#123a33]" checked={f.agree} onChange={e => set({ agree: e.target.checked })} /><span>Saya setuju data akun (nama, email, WhatsApp, kota) disimpan VAKSARA untuk menjalankan layanan. Nomor WhatsApp tidak ditampilkan ke publik tanpa izin. <a href="#/privasi" target="_blank" rel="noopener" className="font-semibold text-ink underline">Baca kebijakan privasi</a>.</span></label>
     {msg}<Button type="submit" full disabled={busy}>{busy ? "Mendaftarkan…" : "Daftar dan kirim kode verifikasi"}</Button>
     <p className="text-center text-[13px] text-muted">Sudah punya akun? {link("Masuk", "masuk")}</p>
   </form>;

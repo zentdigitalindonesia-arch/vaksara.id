@@ -106,7 +106,7 @@ export function FaceCheckIntro({ onStart }: { onStart: () => void }) {
       <li>Ikuti 6 petunjuk singkat: lihat lurus, toleh kiri dan kanan, senyum, lihat atas dan bawah. Urutannya acak.</li>
       <li>Wajah diproses di perangkat Anda. VAKSARA hanya menyimpan <b>satu foto wajah</b> dan hasil verifikasi, yang hanya dapat dilihat peninjau untuk dicocokkan dengan KTP.</li>
     </ul>
-    <label className="flex items-start gap-2 text-[13px] text-ink-soft"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#123a33]" checked={agree} onChange={e => setAgree(e.target.checked)} aria-label="Persetujuan foto wajah" /><span>Saya setuju foto wajah saya diambil dan disimpan VAKSARA untuk verifikasi identitas pelaku budaya, sesuai UU No. 27 Tahun 2022 tentang Pelindungan Data Pribadi. Saya dapat meminta penghapusannya kapan saja.</span></label>
+    <label className="flex items-start gap-2 text-[13px] text-ink-soft"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#123a33]" checked={agree} onChange={e => setAgree(e.target.checked)} aria-label="Persetujuan foto wajah" /><span>Saya setuju foto wajah saya diambil dan disimpan VAKSARA untuk verifikasi identitas pelaku budaya, sesuai UU No. 27 Tahun 2022 tentang Pelindungan Data Pribadi. Saya dapat meminta penghapusannya kapan saja. <a href="#/privasi" target="_blank" rel="noopener" className="font-semibold text-ink underline">Kebijakan privasi</a>.</span></label>
     <Button disabled={!agree} leading={<Camera className="h-4 w-4" />} onClick={onStart}>Mulai verifikasi wajah</Button>
   </div>;
 }

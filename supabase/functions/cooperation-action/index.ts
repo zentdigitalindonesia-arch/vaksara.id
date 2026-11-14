@@ -163,7 +163,7 @@ type Env = (key: string) => string;
 type Row = { id: string; couple_id: string; vendor_id: string; couple_name: string; vendor_name: string; phase: string; data: Cooperation; updated_at: string };
 type Profile = { id: string; role: "couple" | "vendor"; full_name: string; is_admin: boolean };
 type Listing = { id: string; name: string; review_status: string; published: boolean; identity_ok: boolean; culture_ok: boolean; consent_ok: boolean };
-type Body = { caseId?: string; vendorId?: string; actor?: Actor; action?: { type?: string; id?: string; data?: Record<string, unknown> } };
+type Body = { caseId?: string; vendorId?: string; requestId?: string; vendorName?: string; actor?: Actor; action?: { type?: string; id?: string; data?: Record<string, unknown> } };
 
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
@@ -216,6 +216,29 @@ export async function handle(req: Request, env: Env): Promise<Response> {
       const event: FlowAction = { type, actor: "couple", id, time, data: { ...data, vendor: listing.name } };
       const item = transitionFlow(flow, event).cases[0];
       const [row] = await db<Row[]>("cooperations", { method: "POST", body: { id: item.id, couple_id: me.id, vendor_id: listing.id, phase: item.phase, data: item }, prefer: "return=representation" });
+      return json(200, { row });
+    }
+
+    // Memilih pelaku dari permintaan terbuka: buat kerja sama, kirim permintaan, dan tutup permintaan terbuka dalam satu langkah.
+    if (type === "choose_open") {
+      if (me.role !== "couple") throw new Fail(403, "Hanya akun keluarga yang dapat memilih pelaku.");
+      const [request] = await db<{ id: string; owner_id: string; status: string; title: string; detail: string; event_date: string }[]>(`open_requests?select=id,owner_id,status,title,detail,event_date&id=eq.${enc(String(body.requestId ?? ""))}`);
+      if (!request || request.owner_id !== me.id) throw new Fail(404, "Permintaan terbuka tidak ditemukan.");
+      if (request.status !== "open") throw new Fail(400, "Permintaan terbuka ini sudah ditutup.");
+      const [response] = await db<{ vendor_id: string }[]>(`open_request_responses?select=vendor_id&request_id=eq.${enc(request.id)}&vendor_name=eq.${enc(String(body.vendorName ?? ""))}`);
+      if (!response) throw new Fail(400, "Pelaku ini belum mengajukan minat pada permintaan Anda.");
+      const [listing] = await db<Listing[]>(`vendor_listings?select=id,name,review_status,published&id=eq.${enc(response.vendor_id)}`);
+      if (!listing || !listing.published || listing.review_status !== "approved") throw new Fail(400, "Pelaku ini sedang ditinjau ulang sehingga belum dapat dipilih.");
+      let flow: Flow = { schema: 1, accounts: { couple: account(me.full_name || "Keluarga"), vendor: null }, vendorReview: { identity: false, culture: false, consent: false }, cases: [], catalog: [listing.name] };
+      flow = transitionFlow(flow, { type: "lead", actor: "couple", id, time, data: { vendor: listing.name, date: data.date ?? request.event_date, request: data.request ?? `${request.title}. ${request.detail} (dari permintaan terbuka)` } });
+      flow = transitionFlow(flow, { type: "submit", actor: "couple", caseId: id, id: `${id}-kirim`, time, data: {} });
+      const item = flow.cases[0];
+      const [row] = await db<Row[]>("cooperations", { method: "POST", body: { id: item.id, couple_id: me.id, vendor_id: listing.id, phase: item.phase, data: item }, prefer: "return=representation" });
+      const closed = await db<unknown[]>(`open_requests?id=eq.${enc(request.id)}&status=eq.open`, { method: "PATCH", body: { status: "closed", chosen: listing.name, case_id: item.id }, prefer: "return=representation" });
+      if (!closed.length) {
+        await db(`cooperations?id=eq.${enc(item.id)}`, { method: "DELETE", prefer: "return=minimal" });
+        throw new Fail(409, "Permintaan terbuka ini baru saja ditutup dari perangkat lain.");
+      }
       return json(200, { row });
     }
 
