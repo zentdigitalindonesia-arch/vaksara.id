@@ -8,7 +8,7 @@ import { parseCsv, publicVendors } from "@/data-public-vendors";
 import { confirmedTotal, phaseLabels } from "@/utils/cooperation";
 import { demoAccounts } from "@/utils/demo-login";
 import { enterLive, liveBoot, useLive, type Listing } from "@/LiveContext";
-import { friendly, liveEnabled, rest, signIn } from "@/utils/supabase";
+import { friendly, liveEnabled, q, rest, signIn, signOut } from "@/utils/supabase";
 import type { Cooperation } from "@/utils/cooperation";
 
 // Halaman pemilik (superadmin). Tidak ditautkan dari menu mana pun; hanya dapat dibuka lewat slug di bawah.
@@ -76,7 +76,13 @@ function LiveOwnerLogin() {
   const [email, setEmail] = useState(""), [pw, setPw] = useState(""), [error, setError] = useState(""), [busy, setBusy] = useState(false);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true); setError("");
-    try { const s = await signIn(email, pw); await enterLive(s); location.reload(); }
+    try {
+      const s = await signIn(email, pw);
+      // Hanya akun admin yang boleh tetap masuk lewat halaman pemilik; akun lain langsung dikeluarkan lagi.
+      const [me] = await rest<{ is_admin: boolean }[]>(`profiles?select=is_admin&id=eq.${q(s.user.id)}`);
+      if (!me?.is_admin) { await signOut(); throw new Error("Email ini bukan akun pemilik VAKSARA. Gunakan akun yang ditetapkan sebagai admin."); }
+      await enterLive(s); location.reload();
+    }
     catch (err) { setError(friendly(err)); setPw(""); } finally { setBusy(false); }
   };
   return <div className="flex min-h-screen items-center justify-center bg-cream px-4"><Card className="w-full max-w-sm p-6">

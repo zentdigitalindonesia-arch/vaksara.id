@@ -10,6 +10,7 @@ async function signup(p, role, email) {
   await p.getByLabel('Email daftar', { exact: true }).fill(email);
   await p.getByLabel('Nomor WhatsApp', { exact: true }).fill('081234567890');
   await p.getByLabel('Kata sandi daftar', { exact: true }).fill('rahasia123');
+  await p.getByLabel('Ulangi kata sandi daftar', { exact: true }).fill('rahasia123');
   await p.locator('label', { hasText: 'Saya setuju data akun' }).click();
   await p.getByRole('button', { name: 'Daftar dan kirim kode verifikasi' }).click();
   await p.getByLabel('Kode verifikasi', { exact: true }).fill('123456');

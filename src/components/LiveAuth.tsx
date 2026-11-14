@@ -18,7 +18,7 @@ async function finish(s: AuthSession, role?: string) {
 export function LiveAuthForm({ initial = "masuk" }: { initial?: "masuk" | "daftar" }) {
   const [step, setStep] = useState<Step>(initial);
   const [purpose, setPurpose] = useState<"signup" | "recovery">("signup");
-  const [f, setF] = useState({ role: "couple" as "couple" | "vendor", name: "", email: "", phone: "", city: "Makassar", password: "", code: "", agree: false });
+  const [f, setF] = useState({ role: "couple" as "couple" | "vendor", name: "", email: "", phone: "", city: "Makassar", password: "", password2: "", code: "", agree: false });
   const [error, setError] = useState(""), [info, setInfo] = useState(""), [busy, setBusy] = useState(false);
   const set = (patch: Partial<typeof f>) => setF(prev => ({ ...prev, ...patch }));
   const run = async (work: () => Promise<void>) => { setBusy(true); setError(""); try { await work(); } catch (e) { setError(friendly(e)); } finally { setBusy(false); } };
@@ -31,6 +31,7 @@ export function LiveAuthForm({ initial = "masuk" }: { initial?: "masuk" | "dafta
     if (!validEmail(f.email)) return setError("Format email tidak valid.");
     if (!/^\+628\d{7,12}$/.test(phone)) return setError("Nomor WhatsApp harus nomor Indonesia, contoh 0812 3456 7890.");
     if (!strong(f.password)) return setError("Kata sandi minimal 8 karakter dan memuat huruf serta angka.");
+    if (f.password !== f.password2) return setError("Ulangi kata sandi belum sama. Ketik ulang kata sandi yang sama di kedua kolom.");
     if (!f.agree) return setError("Centang persetujuan penyimpanan data untuk melanjutkan.");
     run(async () => {
       const r = await signUp(f.email, f.password, { role: f.role, full_name: f.name.trim(), phone, city: f.city.trim() });
@@ -43,12 +44,12 @@ export function LiveAuthForm({ initial = "masuk" }: { initial?: "masuk" | "dafta
     if (!/^\d{6,10}$/.test(f.code.trim())) return setError("Masukkan kode angka dari email.");
     run(async () => {
       const s = await verifyCode(f.email, f.code, purpose);
-      if (purpose === "recovery") { setStep("sandi-baru"); setInfo("Kode benar. Buat kata sandi baru."); set({ code: "", password: "" }); void s; return; }
+      if (purpose === "recovery") { setStep("sandi-baru"); setInfo("Kode benar. Buat kata sandi baru."); set({ code: "", password: "", password2: "" }); void s; return; }
       await finish(s, f.role);
     });
   };
   const forgot = (e: React.FormEvent) => { e.preventDefault(); if (!validEmail(f.email)) return setError("Isi email akun Anda."); run(async () => { await sendRecovery(f.email); setPurpose("recovery"); setStep("kode"); setInfo(`Jika ${f.email} terdaftar, kode pemulihan sudah dikirim.`); }); };
-  const newPassword = (e: React.FormEvent) => { e.preventDefault(); if (!strong(f.password)) return setError("Kata sandi minimal 8 karakter dan memuat huruf serta angka."); run(async () => { await updatePassword(f.password); const s = await signIn(f.email, f.password); await finish(s); }); };
+  const newPassword = (e: React.FormEvent) => { e.preventDefault(); if (!strong(f.password)) return setError("Kata sandi minimal 8 karakter dan memuat huruf serta angka."); if (f.password !== f.password2) return setError("Ulangi kata sandi belum sama. Ketik ulang kata sandi yang sama di kedua kolom."); run(async () => { await updatePassword(f.password); const s = await signIn(f.email, f.password); await finish(s); }); };
 
   const msg = <>{info && <p role="status" className="rounded-xl bg-[#EEF7F1] p-2.5 text-[13px] text-[#1E5C38]">{info}</p>}{error && <p role="alert" className="text-sm font-semibold text-[#933A2F]">{error}</p>}</>;
   const link = (label: string, to: Step) => <button type="button" className="font-semibold text-ink underline" onClick={() => { setStep(to); setError(""); setInfo(""); }}>{label}</button>;
@@ -68,6 +69,8 @@ export function LiveAuthForm({ initial = "masuk" }: { initial?: "masuk" | "dafta
   </form>;
   if (step === "sandi-baru") return <form onSubmit={newPassword} className="space-y-3" aria-label="Kata sandi baru">
     <Field label="Kata sandi baru" hint="Minimal 8 karakter, berisi huruf dan angka."><PasswordInput aria-label="Kata sandi baru" autoComplete="new-password" value={f.password} onChange={e => set({ password: e.target.value })} /></Field>
+    <Field label="Ulangi kata sandi baru"><PasswordInput aria-label="Ulangi kata sandi baru" autoComplete="new-password" value={f.password2} onChange={e => set({ password2: e.target.value })} /></Field>
+    {f.password2 && f.password !== f.password2 && <p className="text-[13px] font-semibold text-[#933A2F]">Kata sandi belum sama.</p>}
     {msg}<Button type="submit" full disabled={busy}>{busy ? "Menyimpan…" : "Simpan dan masuk"}</Button>
   </form>;
   if (step === "daftar") return <form onSubmit={register} className="space-y-3" aria-label="Daftar akun VAKSARA">
@@ -78,6 +81,7 @@ export function LiveAuthForm({ initial = "masuk" }: { initial?: "masuk" | "dafta
       <Field label="Nomor WhatsApp"><Input aria-label="Nomor WhatsApp" type="tel" inputMode="tel" autoComplete="tel" value={f.phone} onChange={e => set({ phone: e.target.value })} placeholder="0812 3456 7890" /></Field>
       <Field label="Kota / kabupaten"><Input aria-label="Kota" maxLength={80} value={f.city} onChange={e => set({ city: e.target.value })} /></Field>
       <Field label="Kata sandi" hint="Min. 8 karakter, huruf dan angka."><PasswordInput aria-label="Kata sandi daftar" autoComplete="new-password" value={f.password} onChange={e => set({ password: e.target.value })} /></Field>
+      <Field label="Ulangi kata sandi" hint={f.password2 && f.password !== f.password2 ? "Kata sandi belum sama." : "Ketik ulang kata sandi yang sama."}><PasswordInput aria-label="Ulangi kata sandi daftar" autoComplete="new-password" value={f.password2} onChange={e => set({ password2: e.target.value })} /></Field>
     </div>
     <label className="flex items-start gap-2 text-[13px] text-ink-soft"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#123a33]" checked={f.agree} onChange={e => set({ agree: e.target.checked })} /><span>Saya setuju data akun (nama, email, WhatsApp, kota) disimpan VAKSARA untuk menjalankan layanan. Nomor WhatsApp tidak ditampilkan ke publik tanpa izin.</span></label>
     {msg}<Button type="submit" full disabled={busy}>{busy ? "Mendaftarkan…" : "Daftar dan kirim kode verifikasi"}</Button>

@@ -25,6 +25,10 @@ let n = 0; const ok = m => { n++; console.log('PASS', m); };
     await p.getByRole('button', { name: 'Lihat sandi' }).first().click();
     if (await p.getByLabel('Kata sandi daftar', { exact: true }).getAttribute('type') !== 'text') throw new Error('ikon mata tidak menampilkan sandi');
     await p.getByRole('button', { name: 'Sembunyikan sandi' }).first().click();
+    await p.getByLabel('Ulangi kata sandi daftar', { exact: true }).fill('rahasia124');
+    await click(p, 'Daftar dan kirim kode verifikasi');
+    await p.getByText(/Ulangi kata sandi belum sama/).waitFor(); // sandi diketik dua kali dan harus sama
+    await p.getByLabel('Ulangi kata sandi daftar', { exact: true }).fill('rahasia123');
     await click(p, 'Daftar dan kirim kode verifikasi');
     await p.getByText(/Centang persetujuan/).waitFor(); // wajib setuju
     await p.locator('label', { hasText: 'Saya setuju data akun' }).click();
@@ -277,6 +281,16 @@ let n = 0; const ok = m => { n++; console.log('PASS', m); };
       if (await anon.getByText('Sanggar Uji Batara').count()) throw new Error('profil yang menunggu peninjauan ulang masih tampil publik');
       if (await anon.getByText('Profil contoh', { exact: true }).count()) throw new Error('profil contoh tampil kepada pengunjung umum di server nyata');
       ok('pengunjung umum tidak melihat profil yang ditinjau ulang maupun profil contoh'); }
+
+    // ---------- Halaman pemilik menolak akun bukan admin ----------
+    { const o = await device(1280);
+      await o.goto(base + 'pemilik'); await o.reload(); await o.waitForLoadState('networkidle');
+      await o.getByLabel('Email pemilik', { exact: true }).fill('keluarga@uji.id');
+      await o.getByLabel('Sandi pemilik', { exact: true }).fill('rahasia123');
+      await o.getByRole('button', { name: 'Masuk', exact: true }).click();
+      await o.getByText(/bukan akun pemilik VAKSARA/).waitFor();
+      if (await o.evaluate(() => localStorage.getItem('vx-auth-v1'))) throw new Error('akun bukan admin tetap masuk lewat halaman pemilik');
+      ok('halaman pemilik menolak akun bukan admin dan tidak meninggalkan sesi'); }
 
     // ---------- Keluar ----------
     await c2.evaluate(() => { location.hash = '#/planner/kerjasama'; });
