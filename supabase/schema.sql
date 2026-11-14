@@ -239,6 +239,186 @@ drop policy if exists resp_update on public.open_request_responses;
 create policy resp_update on public.open_request_responses for update to authenticated
   using (vendor_id = auth.uid()) with check (vendor_id = auth.uid());
 
+-- ============ PEMBERITAHUAN (lonceng aplikasi + email) ============
+-- Pemicu di database mencatat kejadian penting untuk pihak yang perlu tahu. Pihak yang melakukan tindakan
+-- tidak diberi tahu tentang tindakannya sendiri. Email dikirim Edge Function "notify-email" (lihat
+-- supabase/PANDUAN-NOTIFIKASI.md) melalui Database Webhook pada tabel ini.
+alter table public.profiles add column if not exists email_notifications boolean not null default true;
+
+create table if not exists public.notifications (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  kind text not null,
+  title text not null,
+  body text not null default '',
+  link text not null default '',
+  read_at timestamptz,
+  emailed_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists notifications_user on public.notifications (user_id, created_at desc);
+alter table public.notifications enable row level security;
+drop policy if exists notif_select on public.notifications;
+create policy notif_select on public.notifications for select to authenticated using (user_id = auth.uid());
+drop policy if exists notif_update on public.notifications;
+create policy notif_update on public.notifications for update to authenticated
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
+-- Pengguna hanya dapat membaca miliknya dan menandai dibaca; pemberitahuan dibuat oleh pemicu, bukan oleh browser.
+revoke all on public.notifications from anon, authenticated;
+grant select on public.notifications to authenticated;
+grant update (read_at) on public.notifications to authenticated;
+
+create or replace function public.notify(p_user uuid, p_kind text, p_title text, p_body text, p_link text) returns void
+language sql security definer set search_path = public as $$
+  insert into public.notifications (user_id, kind, title, body, link)
+  select p_user, p_kind, left(p_title, 200), left(coalesce(p_body, ''), 500), coalesce(p_link, '')
+  where p_user is not null and exists (select 1 from public.profiles where id = p_user);
+$$;
+create or replace function public.notify_admins(p_kind text, p_title text, p_body text, p_link text) returns void
+language sql security definer set search_path = public as $$
+  insert into public.notifications (user_id, kind, title, body, link)
+  select id, p_kind, left(p_title, 200), left(coalesce(p_body, ''), 500), coalesce(p_link, '') from public.profiles where is_admin;
+$$;
+create or replace function public.idr(n bigint) returns text language sql immutable as $$
+  select 'Rp' || replace(to_char(coalesce(n, 0), 'FM999,999,999,990'), ',', '.');
+$$;
+-- Fungsi pemberitahuan tidak boleh dipanggil langsung dari browser (mencegah pemberitahuan palsu).
+revoke execute on function public.notify(uuid, text, text, text, text) from public, anon, authenticated;
+revoke execute on function public.notify_admins(text, text, text, text) from public, anon, authenticated;
+
+-- Profil pelaku: pendaftar baru dan tinjau ulang ke peninjau; hasil peninjauan ke pelaku.
+create or replace function public.notify_listing() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if tg_op = 'INSERT' then
+    perform public.notify_admins('listing_new', 'Pendaftar baru: ' || new.name, 'Profil pelaku budaya menunggu peninjauan.', 'admin/screening');
+  elsif new.review_status is distinct from old.review_status then
+    if new.review_status = 'approved' then
+      perform public.notify(new.id, 'listing_approved', 'Profil Anda disetujui', 'Profil ' || new.name || ' kini tampil di direktori VAKSARA dan dapat menerima permintaan.', 'vendor/profil');
+    elsif new.review_status = 'rejected' then
+      perform public.notify(new.id, 'listing_rejected', 'Profil Anda perlu diperbaiki', coalesce(nullif(new.review_note, ''), 'Lihat catatan peninjau di halaman profil.'), 'vendor/profil');
+    elsif new.review_status = 'pending' then
+      perform public.notify_admins('listing_review', 'Tinjau ulang: ' || new.name,
+        case when old.review_status = 'approved' then 'Profil diubah setelah disetujui.' else 'Profil diperbaiki dan diajukan ulang.' end, 'admin/screening');
+      if old.review_status = 'approved' then
+        perform public.notify(new.id, 'listing_pending', 'Profil Anda ditinjau ulang', 'Profil disembunyikan sementara sampai peninjau menyetujui perubahan. Kerja sama yang berjalan tetap dapat dilanjutkan.', 'vendor/profil');
+      end if;
+    end if;
+  end if;
+  return null;
+end $$;
+drop trigger if exists notify_listing on public.vendor_listings;
+create trigger notify_listing after insert or update on public.vendor_listings
+  for each row execute function public.notify_listing();
+
+-- Kerja sama: setiap perubahan tahap, versi penawaran, persetujuan, dan pembayaran diberitahukan ke pihak lain.
+create or replace function public.notify_cooperation() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare
+  actor text := coalesce(new.data->'history'->-1->>'actor', '');
+  fam text := coalesce(nullif(new.couple_name, ''), 'Keluarga');
+  ven text := coalesce(nullif(new.vendor_name, ''), 'Pelaku budaya');
+  old_ver int := coalesce((old.data->'offer'->>'version')::int, 0);
+  new_ver int := coalesce((new.data->'offer'->>'version')::int, 0);
+  old_pending int := (select count(*) from jsonb_array_elements(coalesce(old.data->'payments', '[]')) p where p->>'status' = 'pending');
+  new_pending int := (select count(*) from jsonb_array_elements(coalesce(new.data->'payments', '[]')) p where p->>'status' = 'pending');
+  old_conf int := (select count(*) from jsonb_array_elements(coalesce(old.data->'payments', '[]')) p where p->>'status' = 'confirmed');
+  new_conf int := (select count(*) from jsonb_array_elements(coalesce(new.data->'payments', '[]')) p where p->>'status' = 'confirmed');
+  old_rej int := (select count(*) from jsonb_array_elements(coalesce(old.data->'payments', '[]')) p where p->>'status' = 'rejected');
+  new_rej int := (select count(*) from jsonb_array_elements(coalesce(new.data->'payments', '[]')) p where p->>'status' = 'rejected');
+  last_amount bigint := coalesce((new.data->'payments'->-1->>'amount')::bigint, 0);
+  note text := coalesce(nullif(new.data->>'reviewNote', ''), '');
+  c_title text; c_body text := ''; v_title text; v_body text := ''; a_title text; a_body text := '';
+begin
+  if new.phase is distinct from old.phase then
+    case new.phase
+      when 'inquiry' then v_title := 'Permintaan baru dari ' || fam; v_body := left(coalesce(new.data->>'request', ''), 300);
+      when 'replied' then
+        if old.phase = 'inquiry' then c_title := ven || ' membalas permintaan Anda'; c_body := left(coalesce(new.data->>'reply', ''), 300);
+        else v_title := fam || ' meminta revisi penawaran'; v_body := note; end if;
+      when 'declined' then c_title := ven || ' menolak permintaan Anda'; c_body := note;
+      when 'offered' then c_title := 'Penawaran dari ' || ven || ' (versi ' || new_ver || ')'; c_body := 'Nilai layanan ' || public.idr((new.data->'offer'->>'price')::bigint) || ', DP ' || public.idr((new.data->'offer'->>'deposit')::bigint) || '.';
+      when 'contract' then v_title := fam || ' menerima penawaran Anda'; v_body := 'Setujui perjanjian versi ' || new_ver || ' agar kerja sama berlaku.';
+      when 'active' then c_title := 'Perjanjian disepakati kedua pihak'; v_title := c_title; c_body := 'Langkah berikutnya: pembayaran DP.'; v_body := 'Tunggu keluarga membayar DP, lalu konfirmasi penerimaannya.';
+      when 'running' then c_title := ven || ' memulai pelaksanaan';
+      when 'handover' then c_title := ven || ' mengajukan BAST'; c_body := 'Periksa hasil layanan, lalu terima BAST atau minta perbaikan.';
+      when 'revision' then v_title := fam || ' meminta perbaikan hasil'; v_body := note;
+      when 'accepted' then v_title := fam || ' menerima BAST'; v_body := 'Selesaikan keuangan agar kerja sama dapat ditutup.';
+      when 'completed' then c_title := 'Kerja sama dengan ' || ven || ' ditutup'; v_title := 'Kerja sama dengan ' || fam || ' ditutup';
+      when 'disputed' then c_title := 'Sengketa diajukan'; v_title := c_title; c_body := note; v_body := note;
+        a_title := 'Sengketa menunggu mediasi: ' || fam || ' – ' || ven; a_body := note;
+      when 'cancel_pending' then c_title := 'Usulan pembatalan dari ' || ven; v_title := 'Usulan pembatalan dari ' || fam; c_body := note; v_body := note;
+      when 'refund_due' then v_title := 'Pembatalan disepakati; catat pengembalian dana'; v_body := 'Refund ' || public.idr((new.data->'cancellation'->>'refund')::bigint) || ' kepada ' || fam || '.';
+      when 'refund_sent' then c_title := ven || ' mencatat pengembalian dana'; c_body := 'Konfirmasi bila dana sudah Anda terima.';
+      when 'cancelled' then c_title := 'Kerja sama dengan ' || ven || ' dibatalkan'; v_title := 'Kerja sama dengan ' || fam || ' dibatalkan'; c_body := note; v_body := note;
+      else null;
+    end case;
+    if old.phase = 'disputed' and new.phase not in ('cancel_pending', 'cancelled') then
+      c_title := 'Mediasi dicatat; kerja sama dilanjutkan'; v_title := c_title; c_body := coalesce(new.data->>'reply', ''); v_body := c_body;
+    elsif old.phase = 'cancel_pending' and new.phase not in ('cancelled', 'refund_due') then
+      c_title := 'Usulan pembatalan ditolak'; v_title := c_title; c_body := note; v_body := note;
+    end if;
+  else
+    if new.phase = 'offered' and new_ver > old_ver then
+      c_title := 'Penawaran baru dari ' || ven || ' (versi ' || new_ver || ')'; c_body := 'Versi sebelumnya tidak berlaku lagi; tinjau ulang sebelum menyetujui.';
+    elsif new.phase = 'contract' then
+      if coalesce((new.data->'approvals'->>'couple')::boolean, false) and not coalesce((old.data->'approvals'->>'couple')::boolean, false) then
+        v_title := fam || ' menyetujui perjanjian'; v_body := 'Giliran Anda menyetujui versi ' || new_ver || '.'; end if;
+      if coalesce((new.data->'approvals'->>'vendor')::boolean, false) and not coalesce((old.data->'approvals'->>'vendor')::boolean, false) then
+        c_title := ven || ' menyetujui perjanjian'; c_body := 'Giliran Anda menyetujui versi ' || new_ver || '.'; end if;
+    end if;
+  end if;
+  -- Pembayaran (tanpa perubahan tahap).
+  if new_pending > old_pending then
+    v_title := fam || ' mencatat pembayaran ' || public.idr(last_amount); v_body := 'Periksa rekening Anda, lalu konfirmasi atau tolak catatan ini.';
+  elsif new_conf > old_conf and actor = 'vendor' then
+    c_title := ven || ' mengonfirmasi pembayaran Anda';
+  elsif new_rej > old_rej then
+    c_title := ven || ' menolak catatan pembayaran'; c_body := 'Periksa kembali bukti transfer Anda.';
+  end if;
+
+  if c_title is not null and actor <> 'couple' then
+    perform public.notify(new.couple_id, 'cooperation', c_title, c_body, 'planner/alur?case=' || new.id);
+  end if;
+  if v_title is not null and actor <> 'vendor' then
+    perform public.notify(new.vendor_id, 'cooperation', v_title, v_body, 'vendor/alur?case=' || new.id);
+  end if;
+  if a_title is not null then
+    perform public.notify_admins('dispute', a_title, a_body, 'admin/alur?case=' || new.id);
+  end if;
+  return null;
+end $$;
+drop trigger if exists notify_cooperation on public.cooperations;
+create trigger notify_cooperation after update on public.cooperations
+  for each row execute function public.notify_cooperation();
+
+-- Permintaan terbuka: pelaku terverifikasi di kategori yang sama diberi tahu; keluarga diberi tahu saat ada minat.
+create or replace function public.notify_open_request() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.notifications (user_id, kind, title, body, link)
+  select v.id, 'open_request', left('Permintaan terbuka: ' || new.title, 200),
+         left(concat_ws(' · ', nullif(new.category, ''), nullif(new.location, ''), nullif(new.event_date, ''), nullif(new.budget, '')), 500), 'vendor/peluang'
+  from public.vendor_listings v
+  where v.review_status = 'approved' and v.published and v.id <> new.owner_id and (new.category = '' or v.category = new.category);
+  return null;
+end $$;
+drop trigger if exists notify_open_request on public.open_requests;
+create trigger notify_open_request after insert on public.open_requests
+  for each row execute function public.notify_open_request();
+
+create or replace function public.notify_open_response() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.notify(r.owner_id, 'open_response', left(coalesce(nullif(new.vendor_name, ''), 'Pelaku budaya') || ' berminat pada permintaan Anda', 200),
+    'Perkiraan harga ' || public.idr(new.price) || '. ' || left(new.note, 300), 'planner/permintaan-terbuka')
+  from public.open_requests r where r.id = new.request_id;
+  return null;
+end $$;
+drop trigger if exists notify_open_response on public.open_request_responses;
+create trigger notify_open_response after insert on public.open_request_responses
+  for each row execute function public.notify_open_response();
+
 -- ============ HAK AKSES API ============
 grant usage on schema public to anon, authenticated;
 grant select on public.vendor_listings to anon;

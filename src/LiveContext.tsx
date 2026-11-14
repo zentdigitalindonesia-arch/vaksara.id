@@ -3,7 +3,7 @@ import { friendly, liveEnabled, q, rest, session, signOut, storedSession, type A
 
 // Mode akun nyata: aktif bila server Supabase dikonfigurasi dan pengguna masuk dengan akun VAKSARA.
 // Akun demo tetap memakai data contoh di browser.
-export type Profile = { id: string; role: "couple" | "vendor"; full_name: string; phone: string; city: string; is_admin: boolean; created_at?: string };
+export type Profile = { id: string; role: "couple" | "vendor"; full_name: string; phone: string; city: string; is_admin: boolean; email_notifications?: boolean; created_at?: string };
 export type Listing = { id: string; name: string; category: string; area: string; description: string; price_from: number | null; whatsapp: string; instagram: string; tiktok: string; facebook: string; published: boolean; review_status: "pending" | "approved" | "rejected"; review_note: string; identity_ok: boolean; culture_ok: boolean; consent_ok: boolean; created_at?: string; updated_at?: string };
 export type ListingInput = Pick<Listing, "name" | "category" | "area" | "description" | "price_from" | "whatsapp" | "instagram" | "tiktok" | "facebook" | "published">;
 

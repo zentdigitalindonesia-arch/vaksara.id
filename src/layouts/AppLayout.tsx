@@ -7,6 +7,8 @@ import { Avatar, Badge, Button } from "@/components/ui";
 import { roleForRoute, useApp, type Role } from "@/store";
 import { demoLogout, demoSession } from "@/utils/demo-login";
 import { useLive } from "@/LiveContext";
+import { notificationTime, useServerNotifications } from "@/useServerNotifications";
+import { q, rest } from "@/utils/supabase";
 import { cn } from "@/utils/cn";
 import {
   Megaphone,
@@ -139,7 +141,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const notifications = [...cases].sort((a, b) => (b.history[b.history.length - 1]?.time ?? "").localeCompare(a.history[a.history.length - 1]?.time ?? "")).slice(0, 3).map(c => ({ id: c.id, title: c.vendor, detail: c.request, time: c.history[c.history.length - 1]?.time ?? "", tone: "blue", to: caseRoute(role === "vendor" ? "vendor" : role === "admin" ? "admin" : "couple", nextView(c), c.id) }));
   const requestedCase = new URLSearchParams(route.split("?")[1] ?? "").get("case") ?? (["perjanjian", "pengiriman", "bast", "sengketa"].includes(route.split("/")[0]) ? route.split("/")[1]?.split("?")[0] : undefined);
   const contextCase = cases.find(c => c.id === requestedCase);
-  const { live, profile, listing, syncStatus, email, logout } = useLive();
+  const { live, profile, listing, syncStatus, email, logout, refresh } = useLive();
   // Akun nyata: pemilih peran disembunyikan dan nama diambil dari profil akun.
   const session = live ? { role: profile?.role ?? "couple", name: profile?.full_name ?? "" } : demoSession();
   const signOut = () => { if (live) { logout(); return; } demoLogout(); navigate("beranda"); };
@@ -156,6 +158,28 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [userOpen, setUserOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const { notificationsRead, markNotificationsRead } = useApp();
+  // Akun nyata: pemberitahuan dari server (pemicu database). Akun demo: ringkasan kerja sama di browser.
+  const server = useServerNotifications(live);
+  const [freshIds, setFreshIds] = useState<Set<string>>(new Set());
+  const bellItems = live
+    ? server.items.map(n => ({ id: String(n.id), title: n.title, detail: n.body, time: notificationTime(n.created_at), tone: !n.read_at || freshIds.has(String(n.id)) ? "blue" : "green", to: n.link || meta.home }))
+    : notifications;
+  const hasUnread = live ? server.unread > 0 : !notificationsRead;
+  const openBell = () => {
+    setNotifOpen((v) => !v); setUserOpen(false);
+    if (!live) { markNotificationsRead(); return; }
+    setFreshIds(new Set(server.items.filter(n => !n.read_at).map(n => String(n.id))));
+    server.markAllRead();
+  };
+  const [emailBusy, setEmailBusy] = useState(false);
+  const emailOn = profile?.email_notifications !== false;
+  const toggleEmail = async () => {
+    if (!profile) return;
+    setEmailBusy(true);
+    try { await rest(`profiles?id=eq.${q(profile.id)}`, { method: "PATCH", body: { email_notifications: !emailOn }, prefer: "return=minimal" }); await refresh(); }
+    catch { /* pengaturan tetap seperti semula; dapat dicoba lagi */ }
+    finally { setEmailBusy(false); }
+  };
   const title = findTitle(role, route);
 
   useEffect(() => {
@@ -330,21 +354,24 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </button>
             <div className="relative">
               <button
-                onClick={() => { setNotifOpen((v) => !v); setUserOpen(false); markNotificationsRead(); }}
+                onClick={openBell}
                 className="relative flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-white hover:text-ink"
                 aria-label="Notifikasi"
               >
                 <Bell className="h-4 w-4" />
-                {!notificationsRead && <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[#A4453B] ring-2 ring-cream" />}
+                {hasUnread && (live
+                  ? <span className="absolute -right-0.5 -top-0.5 min-w-[16px] rounded-full bg-[#A4453B] px-1 text-center text-[10px] font-bold leading-4 text-white ring-2 ring-cream">{server.unread > 9 ? "9+" : server.unread}</span>
+                  : <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[#A4453B] ring-2 ring-cream" />)}
               </button>
               {notifOpen && (
                 <div className="absolute right-0 top-10 z-50 w-[300px] overflow-hidden rounded-xl border border-line bg-white shadow-xl sm:w-[340px]">
                   <div className="flex items-center justify-between border-b border-line px-3.5 py-2.5">
                     <span className="text-[15px] font-bold text-ink">Notifikasi</span>
-                    <span className="text-[13px] text-muted">{notifications.length} terbaru</span>
+                    <span className="text-[13px] text-muted">{bellItems.length} terbaru</span>
                   </div>
-                  <div className="divide-y divide-line/70">
-                    {notifications.map((n) => (
+                  <div className="max-h-[60vh] divide-y divide-line/70 overflow-y-auto">
+                    {bellItems.length === 0 && <p className="px-3.5 py-4 text-[14px] text-muted">Belum ada pemberitahuan. Kabar tentang kerja sama, profil, dan permintaan akan muncul di sini.</p>}
+                    {bellItems.map((n) => (
                       <button key={n.id} onClick={() => { navigate(n.to); setNotifOpen(false); }} className="flex w-full items-start gap-2.5 px-3.5 py-2.5 text-left hover:bg-cream">
                         <span className={cn("mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full", n.tone === "warn" ? "bg-[#C08D3B]" : n.tone === "blue" ? "bg-[#5B87A0]" : "bg-[#4C8068]")} />
                         <span className="min-w-0 flex-1">
@@ -355,7 +382,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       </button>
                     ))}
                   </div>
-                  <button onClick={() => setNotifOpen(false)} className="w-full border-t border-line py-2 text-[14px] font-semibold text-ink-soft hover:bg-cream">Tandai semua dibaca</button>
+                  {live ? (
+                    <div className="flex items-center justify-between gap-2 border-t border-line px-3.5 py-2">
+                      <label className="flex cursor-pointer items-center gap-2 text-[13px] text-ink-soft">
+                        <input type="checkbox" checked={emailOn} disabled={emailBusy || !profile} onChange={toggleEmail} className="h-4 w-4 accent-[#16332E]" aria-label="Kirim juga ke email" />
+                        Kirim juga ke email
+                      </label>
+                      <button onClick={() => setNotifOpen(false)} className="text-[13px] font-semibold text-ink-soft hover:text-ink">Tutup</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setNotifOpen(false)} className="w-full border-t border-line py-2 text-[14px] font-semibold text-ink-soft hover:bg-cream">Tandai semua dibaca</button>
+                  )}
                 </div>
               )}
             </div>

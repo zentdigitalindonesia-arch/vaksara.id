@@ -26,7 +26,7 @@ function runAs(uid, query) {
   // baris pertama = hasil set_config (f/t), sisanya = JSON (json_agg dapat memuat baris baru)
   return JSON.parse(out.slice(1).join("\n") || "null");
 }
-const PK = { profiles: ["id"], vendor_listings: ["id"], user_state: ["user_id", "key"], cooperations: ["id"], open_requests: ["id"], open_request_responses: ["id"] };
+const PK = { profiles: ["id"], vendor_listings: ["id"], user_state: ["user_id", "key"], cooperations: ["id"], open_requests: ["id"], open_request_responses: ["id"], notifications: ["id"] };
 const EMBED = { open_request_responses: { parent: "open_requests", fk: "request_id" } };
 
 function parseSelect(sel, table) {
@@ -42,7 +42,7 @@ function parseSelect(sel, table) {
 function where(params) {
   const conds = [];
   for (const [k, v] of params) {
-    if (["select", "order", "on_conflict"].includes(k)) continue;
+    if (["select", "order", "on_conflict", "limit"].includes(k)) continue;
     const [op, ...rest] = v.split("."); const val = rest.join(".");
     if (op === "eq") conds.push(`t.${ident(k)} = ${lit(val)}`);
     else if (op === "is") conds.push(`t.${ident(k)} is ${val === "true" ? "true" : val === "false" ? "false" : "null"}`);
@@ -54,12 +54,13 @@ function order(params) {
   const o = params.get("order"); if (!o) return "";
   return " order by " + o.split(",").map(p => { const [c, d] = p.split("."); return `t.${ident(c)} ${d === "desc" ? "desc" : "asc"}`; }).join(", ");
 }
+function limit(params) { const n = Number(params.get("limit")); return Number.isSafeInteger(n) && n > 0 ? ` limit ${n}` : ""; }
 
 function handleRest(req, url, body, uid) {
   const table = ident(url.pathname.replace("/rest/v1/", ""));
   const params = url.searchParams; const prefer = req.headers.prefer ?? "";
   const ret = prefer.includes("return=representation");
-  if (req.method === "GET") return runAs(uid, `select coalesce(json_agg(r), '[]'::json) from (select ${parseSelect(params.get("select"), table)} from public.${table} t${where(params)}${order(params)}) r`);
+  if (req.method === "GET") return runAs(uid, `select coalesce(json_agg(r), '[]'::json) from (select ${parseSelect(params.get("select"), table)} from public.${table} t${where(params)}${order(params)}${limit(params)}) r`);
   if (req.method === "POST") {
     const rows = Array.isArray(body) ? body : [body]; const keys = Object.keys(rows[0]).map(ident);
     const conflict = params.get("on_conflict") ? params.get("on_conflict").split(",").map(ident) : PK[table];

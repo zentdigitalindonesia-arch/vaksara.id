@@ -249,6 +249,21 @@ let n = 0; const ok = m => { n++; console.log('PASS', m); };
     if (!/Keluarga Uji/.test(guests || '')) throw new Error('data tamu tidak terbawa ke perangkat lain');
     ok('data rencana tersimpan per akun dan terbuka di perangkat lain');
 
+    // ---------- Pemberitahuan (pemicu database + lonceng) ----------
+    { const count = (email, like) => psql(`select count(*) from notifications n join profiles p on p.id = n.user_id where p.email = '${email}' and n.title like '${like}'`);
+      if (count('pelaku@uji.id', 'Permintaan baru dari%') === '0') throw new Error('pelaku tidak diberi tahu permintaan baru');
+      if (count('pelaku@uji.id', 'Profil Anda disetujui') === '0') throw new Error('pelaku tidak diberi tahu profil disetujui');
+      if (count('keluarga@uji.id', 'Penawaran dari%') === '0') throw new Error('keluarga tidak diberi tahu penawaran');
+      if (count('admin@uji.id', 'Sengketa menunggu mediasi%') === '0') throw new Error('peninjau tidak diberi tahu sengketa');
+      if (count('keluarga@uji.id', 'Permintaan baru dari%') !== '0') throw new Error('pelaku tindakan ikut diberi tahu tindakannya sendiri');
+      ok('pemicu database mencatat pemberitahuan untuk pihak yang tepat'); }
+    await hard(v, 'vendor/ringkasan');
+    await v.getByRole('button', { name: 'Notifikasi', exact: true }).click();
+    await v.getByText(/Permintaan baru dari/).first().waitFor();
+    await v.waitForTimeout(800);
+    if (psql("select count(*) from notifications n join profiles p on p.id = n.user_id where p.email = 'pelaku@uji.id' and n.read_at is null") !== '0') throw new Error('membuka lonceng tidak menandai dibaca');
+    ok('lonceng menampilkan pemberitahuan server dan menandainya dibaca');
+
     // ---------- Profil yang diubah setelah disetujui ditinjau ulang ----------
     await hard(v, 'vendor/profil');
     await v.getByText('Terverifikasi & tampil', { exact: true }).waitFor();
