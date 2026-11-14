@@ -41,7 +41,7 @@ export function CooperationProvider({ children }: { children: ReactNode }) {
     try {
       const [profile] = await rest<Me[]>(`profiles?select=role,full_name,phone,is_admin&id=eq.${q(uid)}`);
       const listing = profile?.role === "vendor" ? (await rest<MyListing[]>(`vendor_listings?select=id,name,review_status,identity_ok,culture_ok,consent_ok&id=eq.${q(uid)}`))[0] ?? null : null;
-      const listed = await rest<{ id: string; name: string }[]>("vendor_listings?select=id,name&published=is.true&review_status=eq.approved&order=name");
+      const listed = await rest<{ id: string; name: string }[]>("vendor_directory?select=id,name&order=name");
       const rows = await rest<Row[]>("cooperations?select=id,couple_id,vendor_id,couple_name,vendor_name,data,updated_at&order=updated_at.desc");
       me.current = { profile: profile ?? null, listing };
       vendorIds.current = new Map(listed.map(l => [l.name, l.id]));

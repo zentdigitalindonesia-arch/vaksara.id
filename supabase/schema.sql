@@ -19,6 +19,11 @@ language sql stable security definer set search_path = public as $$
   select coalesce((select is_admin from public.profiles where id = auth.uid()), false);
 $$;
 
+create or replace function public.my_role() returns text
+language sql stable security definer set search_path = public as $$
+  select role from public.profiles where id = auth.uid();
+$$;
+
 -- Profil dibuat otomatis saat pendaftaran dari metadata (role, full_name, phone, city).
 create or replace function public.handle_new_user() returns trigger
 language plpgsql security definer set search_path = public as $$
@@ -113,6 +118,15 @@ begin
         new.review_status := old.review_status;
       end if;
     end if;
+  elsif auth.uid() is not null and tg_op = 'UPDATE' and new.review_status = 'approved' and old.review_status is distinct from 'approved' then
+    -- Peninjau menyetujui: KTP, verifikasi wajah, dan minimal 2 foto kegiatan wajib sudah diunggah pelaku.
+    if not exists (select 1 from public.documents d where d.user_id = new.id and d.kind = 'ktp') then
+      raise exception 'Dokumen belum lengkap: KTP penanggung jawab belum diunggah.';
+    elsif not exists (select 1 from public.documents d where d.user_id = new.id and d.kind = 'face') then
+      raise exception 'Dokumen belum lengkap: verifikasi wajah belum dilakukan.';
+    elsif (select count(*) from public.documents d where d.user_id = new.id and d.kind = 'portfolio') < 2 then
+      raise exception 'Dokumen belum lengkap: minimal 2 foto kegiatan diperlukan.';
+    end if;
   end if;
   return new;
 end $$;
@@ -122,14 +136,30 @@ create trigger guard_listing before insert or update on public.vendor_listings
 
 alter table public.vendor_listings enable row level security;
 drop policy if exists listings_public on public.vendor_listings;
-create policy listings_public on public.vendor_listings for select to anon, authenticated
-  using ((published and review_status = 'approved') or id = auth.uid() or public.is_admin());
+-- Tabel ini memuat catatan dan hasil pemeriksaan internal, jadi hanya terbaca oleh pemilik profil dan peninjau.
+-- Pengunjung dan akun lain membaca direktori lewat view public.vendor_directory (kolom publik saja).
+create policy listings_public on public.vendor_listings for select to authenticated
+  using (id = auth.uid() or public.is_admin());
 drop policy if exists listings_insert on public.vendor_listings;
 create policy listings_insert on public.vendor_listings for insert to authenticated
   with check (id = auth.uid() and exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'vendor'));
 drop policy if exists listings_update on public.vendor_listings;
 create policy listings_update on public.vendor_listings for update to authenticated
   using (id = auth.uid() or public.is_admin()) with check (id = auth.uid() or public.is_admin());
+
+create or replace function public.is_listed(p_vendor uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.vendor_listings where id = p_vendor and published and review_status = 'approved');
+$$;
+grant execute on function public.my_role() to authenticated;
+grant execute on function public.is_listed(uuid) to anon, authenticated;
+
+-- Direktori publik: hanya profil yang disetujui dan ditampilkan, tanpa catatan dan hasil pemeriksaan internal.
+create or replace view public.vendor_directory as
+  select id, name, category, area, description, price_from, whatsapp, instagram, tiktok, facebook, created_at, updated_at
+  from public.vendor_listings where published and review_status = 'approved';
+revoke all on public.vendor_directory from anon, authenticated;
+grant select on public.vendor_directory to anon, authenticated;
 
 -- ============ DATA PERENCANAAN PRIBADI (rencana, tugas, tamu, anggaran) ============
 create table if not exists public.user_state (
@@ -163,6 +193,18 @@ create or replace function public.guard_cooperation() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
   new.updated_at := now();
+  -- Nama pihak diambil dari profil dan profil layanan, bukan dari isian browser.
+  if tg_op = 'INSERT' then
+    new.couple_name := coalesce((select full_name from public.profiles where id = new.couple_id), '');
+    new.vendor_name := coalesce((select name from public.vendor_listings where id = new.vendor_id), '');
+  else
+    new.couple_name := old.couple_name; new.vendor_name := old.vendor_name;
+    -- Keluarga menyetujui perjanjian hanya setelah KTP salah satu anggota keluarga diunggah.
+    if coalesce((new.data->'approvals'->>'couple')::boolean, false) and not coalesce((old.data->'approvals'->>'couple')::boolean, false)
+       and not exists (select 1 from public.documents d where d.user_id = new.couple_id and d.kind = 'ktp') then
+      raise exception 'Unggah KTP salah satu anggota keluarga sebelum menyetujui perjanjian.';
+    end if;
+  end if;
   if tg_op = 'UPDATE' then
     new.couple_id := old.couple_id; new.vendor_id := old.vendor_id; new.created_at := old.created_at;
   end if;
@@ -178,8 +220,7 @@ create policy coop_select on public.cooperations for select to authenticated
   using (couple_id = auth.uid() or vendor_id = auth.uid() or public.is_admin());
 drop policy if exists coop_insert on public.cooperations;
 create policy coop_insert on public.cooperations for insert to authenticated
-  with check (couple_id = auth.uid() and exists (
-    select 1 from public.vendor_listings v where v.id = vendor_id and v.published and v.review_status = 'approved'));
+  with check (couple_id = auth.uid() and phase = 'draft' and public.my_role() = 'couple' and public.is_listed(vendor_id));
 drop policy if exists coop_update on public.cooperations;
 -- Peninjau (is_admin) perlu menulis untuk mencatat mediasi sengketa.
 create policy coop_update on public.cooperations for update to authenticated
@@ -208,7 +249,7 @@ create policy req_select on public.open_requests for select to authenticated
   using (owner_id = auth.uid() or public.is_admin() or (status = 'open' and exists (
     select 1 from public.vendor_listings v where v.id = auth.uid() and v.review_status = 'approved')));
 drop policy if exists req_insert on public.open_requests;
-create policy req_insert on public.open_requests for insert to authenticated with check (owner_id = auth.uid());
+create policy req_insert on public.open_requests for insert to authenticated with check (owner_id = auth.uid() and public.my_role() = 'couple');
 drop policy if exists req_update on public.open_requests;
 create policy req_update on public.open_requests for update to authenticated
   using (owner_id = auth.uid()) with check (owner_id = auth.uid());
@@ -235,6 +276,15 @@ create policy resp_insert on public.open_request_responses for insert to authent
   with check (vendor_id = auth.uid()
     and exists (select 1 from public.vendor_listings v where v.id = auth.uid() and v.review_status = 'approved')
     and exists (select 1 from public.open_requests r where r.id = request_id and r.status = 'open'));
+create or replace function public.guard_response() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  new.vendor_name := coalesce((select name from public.vendor_listings where id = new.vendor_id), '');
+  return new;
+end $$;
+drop trigger if exists guard_response on public.open_request_responses;
+create trigger guard_response before insert or update on public.open_request_responses
+  for each row execute function public.guard_response();
 drop policy if exists resp_update on public.open_request_responses;
 create policy resp_update on public.open_request_responses for update to authenticated
   using (vendor_id = auth.uid()) with check (vendor_id = auth.uid());
@@ -419,9 +469,71 @@ drop trigger if exists notify_open_response on public.open_request_responses;
 create trigger notify_open_response after insert on public.open_request_responses
   for each row execute function public.notify_open_response();
 
+-- ============ DOKUMEN VERIFIKASI (KTP, foto kegiatan, NIB, surat rekomendasi, verifikasi wajah) ============
+-- Berkas disimpan di bucket privat "verifikasi" dengan folder per akun: <id akun>/<nama berkas>.
+-- Hanya pemilik dan peninjau (is_admin) yang dapat membuka. Dibuka lewat tautan bertanda tangan yang kedaluwarsa.
+create table if not exists public.documents (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  kind text not null check (kind in ('ktp', 'portfolio', 'nib', 'recommendation', 'face')),
+  path text not null unique check (length(path) between 5 and 300),
+  note text not null default '' check (length(note) <= 300),
+  meta jsonb not null default '{}',
+  created_at timestamptz not null default now()
+);
+create index if not exists documents_user on public.documents (user_id, kind);
+alter table public.documents enable row level security;
+drop policy if exists docs_select on public.documents;
+create policy docs_select on public.documents for select to authenticated using (user_id = auth.uid() or public.is_admin());
+drop policy if exists docs_insert on public.documents;
+create policy docs_insert on public.documents for insert to authenticated
+  with check (user_id = auth.uid() and split_part(path, '/', 1) = auth.uid()::text);
+drop policy if exists docs_delete on public.documents;
+create policy docs_delete on public.documents for delete to authenticated using (user_id = auth.uid());
+revoke all on public.documents from anon, authenticated;
+grant select, insert, delete on public.documents to authenticated;
+
+-- Batas jumlah: 5 foto kegiatan, 1 untuk jenis lainnya (hapus yang lama untuk mengganti).
+create or replace function public.guard_document() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if (select count(*) from public.documents where user_id = new.user_id and kind = new.kind) >= (case when new.kind = 'portfolio' then 5 else 1 end) then
+    raise exception 'Batas dokumen jenis ini sudah tercapai. Hapus yang lama untuk mengganti.';
+  end if;
+  if new.kind = 'face' and public.my_role() is distinct from 'vendor' then
+    raise exception 'Verifikasi wajah hanya untuk pelaku budaya.';
+  end if;
+  return new;
+end $$;
+drop trigger if exists guard_document on public.documents;
+create trigger guard_document before insert on public.documents
+  for each row execute function public.guard_document();
+
+-- Pelaku dapat melihat apakah keluarga mitranya sudah mengunggah KTP (tanpa melihat KTP-nya).
+create or replace function public.has_ktp(p_user uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.documents where user_id = p_user and kind = 'ktp')
+    and (p_user = auth.uid() or public.is_admin() or exists (
+      select 1 from public.cooperations c where c.couple_id = p_user and c.vendor_id = auth.uid()));
+$$;
+grant execute on function public.has_ktp(uuid) to authenticated;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('verifikasi', 'verifikasi', false, 5242880, array['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
+on conflict (id) do update set public = false, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+drop policy if exists verifikasi_insert on storage.objects;
+create policy verifikasi_insert on storage.objects for insert to authenticated
+  with check (bucket_id = 'verifikasi' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists verifikasi_select on storage.objects;
+create policy verifikasi_select on storage.objects for select to authenticated
+  using (bucket_id = 'verifikasi' and ((storage.foldername(name))[1] = auth.uid()::text or public.is_admin()));
+drop policy if exists verifikasi_delete on storage.objects;
+create policy verifikasi_delete on storage.objects for delete to authenticated
+  using (bucket_id = 'verifikasi' and (storage.foldername(name))[1] = auth.uid()::text);
+
 -- ============ HAK AKSES API ============
 grant usage on schema public to anon, authenticated;
-grant select on public.vendor_listings to anon;
+revoke select on public.vendor_listings from anon;
 grant select, insert, update, delete on
   public.profiles, public.vendor_listings, public.user_state, public.cooperations,
   public.open_requests, public.open_request_responses to authenticated;

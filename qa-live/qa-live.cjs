@@ -1,7 +1,7 @@
 // Uji mode akun nyata terhadap tiruan Supabase (RLS asli). Tiga perangkat: pelaku, admin, keluarga.
 const { chromium } = require('playwright');
 const { execFileSync } = require('child_process');
-// Jalankan: Postgres lokal + node qa-live/mock-supa.mjs + build dengan VITE_SUPABASE_URL=http://127.0.0.1:54321, VITE_SUPABASE_ANON_KEY=anon-test, disajikan di :8099.
+// Jalankan: Postgres lokal (psql -f qa-live/supabase-stub.sql lalu supabase/schema.sql) + node qa-live/mock-supa.mjs + build dengan VITE_SUPABASE_URL=http://127.0.0.1:54321, VITE_SUPABASE_ANON_KEY=anon-test, disajikan di :8099.
 const base = process.env.QA_LIVE_URL || 'http://127.0.0.1:8099/index.html#/';
 const psql = q => execFileSync('psql', ['-h', '/tmp/pgt', '-p', '5499', '-U', 'postgres', '-d', 'live', '-At', '-c', q], { encoding: 'utf8' }).trim();
 let n = 0; const ok = m => { n++; console.log('PASS', m); };
@@ -67,6 +67,11 @@ let n = 0; const ok = m => { n++; console.log('PASS', m); };
     await v.getByText('Menunggu peninjauan', { exact: true }).waitFor();
     if (psql("select review_status from vendor_listings where name='Sanggar Uji Batara'") !== 'pending') throw new Error('status bukan pending');
     ok('profil layanan tersimpan di server dengan status menunggu peninjauan');
+    await v.getByRole('heading', { name: 'Dokumen verifikasi' }).waitFor();
+    await v.getByText('0 dari 3 wajib lengkap').waitFor();
+    ok('pelaku melihat daftar dokumen verifikasi wajib');
+    // Unggah berkas dan kamera tidak dapat diuji di tiruan; catatan dokumen dimasukkan langsung sebagai pelaku.
+    const docsFor = (email, kinds) => psql(`select set_config('request.jwt.sub', (select id::text from profiles where email='${email}'), true); insert into documents (user_id, kind, path) select p.id, k.kind, p.id || '/' || k.kind || '-' || k.n || '.jpg' from profiles p, (values ${kinds.map((k, i) => `('${k}', ${i})`).join(', ')}) k(kind, n) where p.email = '${email}'`);
     await v.evaluate(() => { location.hash = '#/vendor/peluang'; });
     await v.getByText('Profil Anda sedang ditinjau').waitFor();
     ok('pelaku belum ditinjau tidak dapat melihat permintaan keluarga');
@@ -113,6 +118,15 @@ let n = 0; const ok = m => { n++; console.log('PASS', m); };
     psql("update profiles set is_admin = true where email = 'admin@uji.id'");
     await hard(a, 'admin/screening');
     await a.getByRole('heading', { name: 'Screening pelaku budaya' }).waitFor();
+    await a.getByText(/Belum dapat disetujui/).first().waitFor();
+    for (const l of ['Identitas diperiksa', 'Konteks budaya sesuai', 'Setuju dipublikasikan']) await a.locator('label', { hasText: l }).first().click();
+    await click(a, 'Setujui & tampilkan');
+    await a.getByText(/Dokumen belum lengkap: KTP/).first().waitFor();
+    if (psql("select review_status from vendor_listings where name='Sanggar Uji Batara'") !== 'pending') throw new Error('disetujui tanpa dokumen');
+    ok('peninjau tidak dapat menyetujui pelaku tanpa dokumen wajib');
+    docsFor('pelaku@uji.id', ['ktp', 'face', 'portfolio', 'portfolio']);
+    await hard(a, 'admin/screening');
+    await a.getByText('Wajib lengkap').first().waitFor();
     await click(a, 'Setujui & tampilkan');
     await a.getByText('Centang ketiga pemeriksaan sebelum menyetujui.').waitFor();
     for (const l of ['Identitas diperiksa', 'Konteks budaya sesuai', 'Setuju dipublikasikan']) await a.locator('label', { hasText: l }).first().click();
@@ -163,11 +177,13 @@ let n = 0; const ok = m => { n++; console.log('PASS', m); };
     ok('pelaku membalas dan mengirim penawaran dari perangkatnya sendiri');
     ok('akun nyata tidak menawarkan Dana Amanah simulasi; penawaran memakai transfer langsung');
 
-    // ---------- Keluarga menyetujui ----------
+    // ---------- Keluarga menyetujui (KTP wajib sebelum persetujuan) ----------
+    docsFor('keluarga@uji.id', ['ktp']);
     await hard(c, 'planner/alur?case=' + encodeURIComponent(caseId));
     await phase(c, 'Penawaran tersedia');
     await click(c, 'Lanjut tinjau perjanjian');
     await phase(c, 'Persetujuan versi perjanjian');
+    await c.getByText(/KTP keluarga sudah tersimpan/).waitFor();
     await c.locator('label', { hasText: /menyetujui versi 1/ }).first().click();
     await click(c, 'Setujui sebagai pengguna');
     await c.waitForTimeout(800);

@@ -20,6 +20,8 @@ const messages: [RegExp, string][] = [
   [/failed to fetch|networkerror|load failed/i, "Tidak dapat terhubung ke server. Periksa koneksi internet Anda."],
   [/row-level security|permission denied|42501/i, "Akses ditolak untuk data ini."],
   [/duplicate key|23505/i, "Data dengan nama atau kode ini sudah ada."],
+  [/exceeded the maximum allowed size|payload too large|entity too large/i, "Berkas terlalu besar. Maksimal 5 MB."],
+  [/mime type|invalid_mime_type|not supported/i, "Jenis berkas tidak didukung. Gunakan JPG, PNG, WEBP, atau PDF."],
 ];
 export function friendly(error: unknown): string {
   const raw = error instanceof Error ? error.message : String(error ?? "");
@@ -91,3 +93,27 @@ export async function rest<T = unknown>(path: string, init: { method?: string; b
   return data as T;
 }
 export const q = (v: string) => encodeURIComponent(v);
+
+// Penyimpanan berkas privat (Supabase Storage). Akses dibatasi kebijakan bucket: hanya pemilik folder dan peninjau.
+const objectPath = (path: string) => path.split("/").map(encodeURIComponent).join("/");
+async function storageFetch(path: string, init: RequestInit): Promise<Response> {
+  if (!liveEnabled) throw new Error("Akun belum diaktifkan di server ini.");
+  const s = await session(); if (!s) throw new Error("Sesi berakhir. Silakan masuk lagi.");
+  const res = await fetch(`${URL_}/storage/v1/${path}`, { ...init, headers: { apikey: KEY, Authorization: `Bearer ${s.access_token}`, ...(init.headers as Record<string, string> | undefined) } });
+  if (!res.ok) { const text = await res.text(); let msg = text; try { const d = JSON.parse(text); msg = d.message ?? d.error ?? text; } catch { /* bukan JSON */ } throw new Error(msg || `HTTP ${res.status}`); }
+  return res;
+}
+export async function uploadFile(bucket: string, path: string, file: Blob): Promise<void> {
+  await storageFetch(`object/${bucket}/${objectPath(path)}`, { method: "POST", headers: { "Content-Type": file.type || "application/octet-stream", "x-upsert": "false" }, body: file });
+}
+export async function removeFile(bucket: string, path: string): Promise<void> {
+  await storageFetch(`object/${bucket}`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prefixes: [path] }) });
+}
+/** Tautan sementara (bawaan 5 menit) untuk membuka berkas privat. */
+export async function signedUrl(bucket: string, path: string, expiresIn = 300): Promise<string> {
+  const res = await storageFetch(`object/sign/${bucket}/${objectPath(path)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ expiresIn }) });
+  const data = await res.json() as { signedURL?: string; signedUrl?: string };
+  const rel = data.signedURL ?? data.signedUrl ?? "";
+  if (!rel) throw new Error("Tautan berkas tidak tersedia.");
+  return rel.startsWith("http") ? rel : `${URL_}/storage/v1${rel.startsWith("/") ? "" : "/"}${rel}`;
+}

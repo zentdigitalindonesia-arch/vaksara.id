@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AtSign, BadgeCheck, Clock3, ExternalLink, MessageCircle, ShieldAlert } from "lucide-react";
 import { Alert, Badge, Button, Card, Checkbox, Field, Input, PageHeader, Select, Textarea } from "@/components/ui";
 import { LiveAuthForm } from "@/components/LiveAuth";
+import { ReviewerDocuments, VendorDocumentsCard } from "@/components/VerificationDocs";
 import PublicDirectory from "@/pages/PublicDirectory";
 import { useLive, type Listing, type ListingInput } from "@/LiveContext";
 import { useApp } from "@/store";
@@ -12,7 +13,7 @@ import { friendly, q, rest } from "@/utils/supabase";
 
 export const listingCategories = [...openRequestCategories, "Sanggar seni & tari", "Rumah pengantin / WO", "Lainnya"];
 const statusInfo: Record<Listing["review_status"], { label: string; tone: "sand" | "green" | "red"; text: string }> = {
-  pending: { label: "Menunggu peninjauan", tone: "sand", text: "Peninjau VAKSARA memeriksa identitas, konteks budaya, dan persetujuan publikasi. Profil tampil di direktori setelah disetujui." },
+  pending: { label: "Menunggu peninjauan", tone: "sand", text: "Lengkapi dokumen verifikasi di bawah (KTP, foto kegiatan, verifikasi wajah). Peninjau VAKSARA memeriksa identitas, konteks budaya, dan persetujuan publikasi; profil tampil di direktori setelah disetujui." },
   approved: { label: "Terverifikasi & tampil", tone: "green", text: "Profil Anda tampil di direktori. Keluarga dapat mengirim permintaan dan Anda dapat menanggapi permintaan terbuka. Bila nama, kategori, wilayah, deskripsi, atau kontak diubah, profil disembunyikan sementara dan ditinjau ulang; kerja sama yang sedang berjalan tetap dapat dilanjutkan." },
   rejected: { label: "Perlu perbaikan", tone: "red", text: "Perbaiki profil sesuai catatan peninjau lalu simpan. Profil otomatis diajukan ulang." },
 };
@@ -92,6 +93,7 @@ export function LiveVendorProfile() {
         </div>
       </Card>
     </div>
+    <VendorDocumentsCard />
   </>;
 }
 
@@ -114,7 +116,7 @@ export function LiveListingCard({ l, onRequest }: { l: Pick<Listing, "id" | "nam
 export function useLiveListings() {
   const [items, setItems] = useState<Listing[]>([]);
   const [loaded, setLoaded] = useState(false);
-  useEffect(() => { let on = true; rest<Listing[]>("vendor_listings?select=id,name,category,area,description,price_from,whatsapp,instagram,tiktok,facebook&published=is.true&review_status=eq.approved&order=updated_at.desc", { anon: true }).then(r => { if (on) setItems(r); }).catch(() => undefined).finally(() => { if (on) setLoaded(true); }); return () => { on = false; }; }, []);
+  useEffect(() => { let on = true; rest<Listing[]>("vendor_directory?select=id,name,category,area,description,price_from,whatsapp,instagram,tiktok,facebook&order=updated_at.desc", { anon: true }).then(r => { if (on) setItems(r); }).catch(() => undefined).finally(() => { if (on) setLoaded(true); }); return () => { on = false; }; }, []);
   return { items, loaded };
 }
 
@@ -146,6 +148,7 @@ export function LiveScreening() {
         <p className="text-[13px] text-muted">{l.area} · WA {l.whatsapp}{l.instagram ? ` · IG @${l.instagram}` : ""} · {l.published ? "ingin tampil" : "disembunyikan pemilik"}</p>
         <p className="mt-2 text-sm text-ink-soft">{l.description}</p>
         <div className="mt-2 flex flex-wrap gap-2">{l.whatsapp && <a className="inline-flex items-center gap-1 text-[13px] font-semibold text-ink underline" href={`https://wa.me/${waNumber(l.whatsapp)}`} target="_blank" rel="noreferrer">Hubungi via WhatsApp <ExternalLink className="h-3 w-3" /></a>}</div>
+        <ReviewerDocuments userId={l.id} />
         <div className="mt-3 grid gap-1 sm:grid-cols-3">
           <Checkbox checked={k.identity} onChange={v => setChecks({ ...checks, [l.id]: { ...k, identity: v } })} label="Identitas diperiksa" />
           <Checkbox checked={k.culture} onChange={v => setChecks({ ...checks, [l.id]: { ...k, culture: v } })} label="Konteks budaya sesuai" />
