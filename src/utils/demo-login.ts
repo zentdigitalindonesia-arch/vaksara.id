@@ -1,4 +1,3 @@
-import { liveEnabled } from "@/utils/supabase";
 // Akun demo untuk kompetisi: kata sandi sengaja ditampilkan karena semua data adalah contoh dan tersimpan di browser.
 export type DemoRole = "couple" | "vendor" | "admin";
 export const demoAccounts: { role: DemoRole; label: string; username: string; email: string; password: string; name: string; home: string }[] = [
@@ -18,7 +17,3 @@ export function demoSession(): { role: DemoRole; name: string } | null {
   try { const raw = localStorage.getItem(SESSION_KEY); const s = raw ? JSON.parse(raw) : null; return s && ["couple", "vendor", "admin"].includes(s.role) ? s : null; } catch { return null; }
 }
 export function demoLogout() { try { localStorage.removeItem(SESSION_KEY); } catch { /* abaikan */ } }
-
-/** Profil pelaku contoh hanya ditampilkan bila server akun nyata belum aktif, atau bila pengunjung masuk dengan akun demo.
- *  Di vaksara.id, pengunjung umum dan akun nyata hanya melihat pelaku terdaftar dan direktori publik. */
-export function showSampleProfiles(): boolean { return !liveEnabled || demoSession() !== null; }
