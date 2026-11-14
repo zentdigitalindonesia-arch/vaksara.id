@@ -617,9 +617,10 @@ function SearchField({ label, icon, children }: { label: string; icon: React.Rea
   );
 }
 
+// Gambar mini tampilan aplikasi (ilustrasi, bukan teks untuk dibaca): disembunyikan dari pembaca layar.
 function PlannerMock() {
   return (
-    <div className="relative">
+    <div className="relative" aria-hidden="true">
       <div className="absolute -inset-3 rounded-[26px] bg-[#EFE6D4]/70" />
       <div className="relative overflow-hidden rounded-2xl border border-line bg-white shadow-[0_25px_60px_-35px_rgba(22,51,46,.4)]">
         <div className="flex items-center justify-between border-b border-line bg-[#FBFAF6] px-3 py-2">
